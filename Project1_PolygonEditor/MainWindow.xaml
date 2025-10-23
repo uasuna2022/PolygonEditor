@@ -1,0 +1,69 @@
+﻿<Window x:Class="Project1_PolygonEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Project1_PolygonEditor"
+        mc:Ignorable="d"
+        Title="Polygon Editor" Height="600" Width="800"
+        WindowStartupLocation="CenterScreen" MinHeight="400" MinWidth="600"
+        Background="#fafafa">
+
+    <Grid ShowGridLines="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+    
+        <DockPanel Grid.Row="0" Name="MenuDockPanel">
+            <Menu DockPanel.Dock="Top" Name="MainMenu">
+                <MenuItem Header="_File" Name="FileMenuItem">
+                    <MenuItem Header="_Save Figure" Name="SaveFigureMenuItem"></MenuItem>
+                    <Separator/>
+                    <MenuItem Header="_Exit" Name="ExitMenuItem"></MenuItem>
+                </MenuItem>
+                <MenuItem Header="_User Manual" Name="UserManualMenuItem"></MenuItem>
+                <MenuItem Header="_Description" Name="DescriptionMenuItem"></MenuItem>
+            </Menu>
+        </DockPanel>
+        <DockPanel Grid.Row="1" Name="ButtonsDockPanel" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" Name="ButtonsStackPanel" VerticalAlignment="Center"
+                        DockPanel.Dock="Left" Margin="7">
+                <TextBlock Text="Section drawing algorithm:" VerticalAlignment="Center" Name="DrawingMethodTextBlock"></TextBlock>
+                <RadioButton Name="LibraryAlgorithmRadioButton"
+                             GroupName="DrawingMethodRadioButton"
+                             Content="Library"
+                             IsChecked="True"
+                             Checked="RadioButton_Checked"
+                             Margin="10, 0, 0, 0"
+                             VerticalAlignment="Center">
+                </RadioButton>
+                <RadioButton Name="BresenhamAlgorithmRadioButton"
+                             GroupName="DrawingMethodRadioButton"
+                             Content="Bresenham"
+                             IsChecked="False"
+                             Checked="RadioButton_Checked"
+                             Margin="10, 0, 0, 0"
+                             VerticalAlignment="Center">
+                </RadioButton>
+            </StackPanel>
+            <Button Name="CleanButton"
+                    Width="75"
+                    Height="21"
+                    Content="Clean All"
+                    Click="CleanButton_Click"
+                    DockPanel.Dock="Right"
+                    Margin="0, 0, 7, 0">
+            </Button>
+        </DockPanel>
+
+        <Border Grid.Row="2" BorderThickness="1" CornerRadius="6" Background="White"
+                BorderBrush="#dddddd" Margin="5" Name="WorkspaceBorder">
+            <Grid Name="WorkspaceGrid" ShowGridLines="True">
+                <Image Name="RasterImage" Stretch="None"></Image>
+                <Canvas Name="DrawingCanvas" Background="Transparent"></Canvas>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
