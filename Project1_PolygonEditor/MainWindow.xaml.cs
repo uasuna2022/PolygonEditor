@@ -18,7 +18,6 @@ namespace Project1_PolygonEditor
     /// </summary>
     public partial class MainWindow : Window
     {
-        private WriteableBitmap? _bitmap;
         private IDrawStrategy _drawStrategy;
         public DrawingAlgorithm CurrentSectionDrawingAlgorithm { get; private set; } = DrawingAlgorithm.Library;
 
@@ -34,11 +33,7 @@ namespace Project1_PolygonEditor
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            int w = Math.Max(1, (int)Math.Ceiling(DrawingCanvas.ActualWidth));
-            int h = Math.Max(1, (int)Math.Ceiling(DrawingCanvas.ActualHeight));
-            
-            _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
-            RasterImage.Source = _bitmap;
+
         }
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
@@ -86,7 +81,7 @@ namespace Project1_PolygonEditor
         private void BresenhamAlgorithmRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Bresenham;
-            _drawStrategy = new BresenhamLineStrategy(_bitmap!);
+            _drawStrategy = new BresenhamLineStrategy(DrawingCanvas);
         } 
     }
 }

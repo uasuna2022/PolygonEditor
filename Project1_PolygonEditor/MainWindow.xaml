@@ -61,7 +61,6 @@
         <Border Grid.Row="2" BorderThickness="1" CornerRadius="6" Background="White"
                 BorderBrush="#dddddd" Margin="5" Name="WorkspaceBorder">
             <Grid Name="WorkspaceGrid" ShowGridLines="True">
-                <Image Name="RasterImage" Stretch="None"></Image>
                 <Canvas Name="DrawingCanvas" Background="Transparent"
                         MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown">
                 </Canvas>
