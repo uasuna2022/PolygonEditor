@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Project1_PolygonEditor"
         mc:Ignorable="d"
-        Title="Polygon Editor" Height="600" Width="800"
-        WindowStartupLocation="CenterScreen" MinHeight="400" MinWidth="600"
-        Background="#fafafa">
+        Title="Polygon Editor" Height="750" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#fafafa" Loaded="Window_Loaded" ResizeMode="CanMinimize">
 
     <Grid ShowGridLines="True">
         <Grid.RowDefinitions>
@@ -35,7 +35,7 @@
                              GroupName="DrawingMethodRadioButton"
                              Content="Library"
                              IsChecked="True"
-                             Checked="RadioButton_Checked"
+                             Checked="LibraryAlgorithmRadioButton_Checked"
                              Margin="10, 0, 0, 0"
                              VerticalAlignment="Center">
                 </RadioButton>
@@ -43,7 +43,7 @@
                              GroupName="DrawingMethodRadioButton"
                              Content="Bresenham"
                              IsChecked="False"
-                             Checked="RadioButton_Checked"
+                             Checked="BresenhamAlgorithmRadioButton_Checked"
                              Margin="10, 0, 0, 0"
                              VerticalAlignment="Center">
                 </RadioButton>

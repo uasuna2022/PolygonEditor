@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Project1_PolygonEditor.StrategyPattern;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -7,7 +8,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
+using Project1_PolygonEditor.Models;
+using Project1_PolygonEditor.View;
 
 namespace Project1_PolygonEditor
 {
@@ -16,50 +18,75 @@ namespace Project1_PolygonEditor
     /// </summary>
     public partial class MainWindow : Window
     {
+        private WriteableBitmap? _bitmap;
+        private IDrawStrategy _drawStrategy;
         public DrawingAlgorithm CurrentSectionDrawingAlgorithm { get; private set; } = DrawingAlgorithm.Library;
 
-        private bool _isClosed = false;
-        private const double _vertexRadius = 4.0;
-        private readonly List<Point> _vertices = new();
-        private readonly List<Ellipse> _vertexDots = new();
+        private Polygon _polygon;
         public MainWindow()
         {
             InitializeComponent();
+            _drawStrategy = new LibraryLineStrategy(DrawingCanvas);
+            _polygon = new Polygon();
+
+            DrawingCanvas.MouseLeftButtonDown += DrawingCanvas_MouseLeftButtonDown;
         }
 
-        private void RadioButton_Checked(object sender, RoutedEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-
+            int w = Math.Max(1, (int)Math.Ceiling(DrawingCanvas.ActualWidth));
+            int h = Math.Max(1, (int)Math.Ceiling(DrawingCanvas.ActualHeight));
+            
+            _bitmap = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
+            RasterImage.Source = _bitmap;
         }
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
         {
-
+            DrawingCanvas.Children.Clear();
+            _polygon.Clear();
         }
 
         private void DrawingCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_isClosed)
+            if (_polygon.IsClosed)
                 return;
-            Point position = e.GetPosition(DrawingCanvas);
 
-            _vertices.Add(position);
+            Point p = e.GetPosition(DrawingCanvas);
+            int idx = _polygon.FindHitVertexIdx(p);
 
-            var dot = new Ellipse
+            if (idx == 0 && _polygon.CanClose)
             {
-                Width = 2 * _vertexRadius,
-                Height = 2 * _vertexRadius,
-                Fill = Brushes.DodgerBlue,
-                Stroke = Brushes.Black,
-                StrokeThickness = 0.5
-            };
-            Canvas.SetLeft(dot, position.X - _vertexRadius);
-            Canvas.SetTop(dot, position.Y - _vertexRadius);
+                _drawStrategy.DrawLine(_polygon.LastVertex!.Position, _polygon.FirstVertex!.Position);
+                Edge closingEdge = _polygon.Close();
 
-            DrawingCanvas.Children.Add(dot);
-            _vertexDots.Add(dot);
+                return;
+            }
 
-            e.Handled = true;
+            if (idx > 0)
+                return;
+
+            Vertex v = _polygon.AddVertex(p);
+            new VertexFigure(v).DrawVertex(DrawingCanvas);
+
+            if (_polygon.VertexCount >= 2)
+            {
+                Point p1 = _polygon.GetVertexByOrder(_polygon.VertexCount - 2).Position;
+                Point p2 = _polygon.LastVertex!.Position;
+                _drawStrategy.DrawLine(p1, p2);
+            }
         }
+
+        private void LibraryAlgorithmRadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Library;
+            _drawStrategy = new LibraryLineStrategy(DrawingCanvas);
+        }
+
+        private void BresenhamAlgorithmRadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Bresenham;
+            _drawStrategy = new BresenhamLineStrategy(_bitmap!);
+        } 
     }
 }
