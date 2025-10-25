@@ -12,6 +12,7 @@ using Project1_PolygonEditor.Models;
 using Project1_PolygonEditor.View;
 using System.Runtime.ConstrainedExecution;
 using Project1_PolygonEditor.Enum_classes;
+using System.Windows.Controls.Primitives;
 
 
 
@@ -30,7 +31,10 @@ namespace Project1_PolygonEditor
         private List<VertexFigure> _vertexFigures;
 
         private VertexFigure? _draggingVertex;
-        private Point _dragCaptureOffset; // cursor - vertex center at press
+        private Point _dragCaptureOffset;
+
+        private int _edgeCtxIndex = -1;
+        private Point _edgeCtxPoint;
 
         public MainWindow()
         {
@@ -328,13 +332,18 @@ namespace Project1_PolygonEditor
         {
             Point p = e.GetPosition(DrawingCanvas);
 
-            if (_polygon.TryFindNearestEdge(p, out int edgeIdx))
+            if (_polygon.TryFindNearestEdge(p, out int edgeIdx, out Point proj))
             {
-                _polygon.InsertVertexAtEdgeMidpoint(edgeIdx);
+                _edgeCtxIndex = edgeIdx;
+                _edgeCtxPoint = proj;
+                ShowEdgeContextMenu();
                 RedrawAll();
 
                 e.Handled = true;
+                return;
             }
+
+            // optionally something here 
         }
 
         private void DrawingCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -345,6 +354,48 @@ namespace Project1_PolygonEditor
                 _draggingVertex = null;
                 e.Handled = true;
             }
+        }
+
+        private void ShowEdgeContextMenu()
+        {
+            ContextMenu cm = new ContextMenu();
+
+            MenuItem miAddVertex = new MenuItem 
+            { 
+                Header = "Add new vertex" 
+            };
+
+            miAddVertex.Click += (s, _) =>
+            {
+                if (_edgeCtxIndex >= 0)
+                {
+                    _polygon.InsertVertexAtEdgeMidpoint(_edgeCtxIndex);
+                    RedrawAll();
+                }
+            };
+
+            cm.Items.Add(miAddVertex);
+            cm.Items.Add(new Separator());
+
+            MenuItem miConstraint = new MenuItem 
+            { 
+                Header = "Add constraint" 
+            };
+            miConstraint.Items.Add(new MenuItem { Header = "Horizontal", IsEnabled = false }); // TODO
+            miConstraint.Items.Add(new MenuItem { Header = "45°", IsEnabled = false });        // TODO
+            miConstraint.Items.Add(new MenuItem { Header = "Fixed length…", IsEnabled = false }); // TODO
+            cm.Items.Add(miConstraint);
+
+            MenuItem miBezier = new MenuItem { Header = "Bezier Curve", IsEnabled = false }; // TODO: toggle edge to Bezier
+            cm.Items.Add(miBezier);
+
+            MenuItem miArc = new MenuItem { Header = "Arc", IsEnabled = false }; // TODO: toggle edge to Arc
+            cm.Items.Add(miArc);
+
+            // Open at mouse position
+            cm.PlacementTarget = DrawingCanvas;
+            cm.Placement = PlacementMode.MousePoint;
+            cm.IsOpen = true;
         }
     }
 }

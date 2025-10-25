@@ -158,10 +158,11 @@ namespace Project1_PolygonEditor.Models
             return Math.Pow((p.X - proj.X), 2) + Math.Pow((p.Y - proj.Y), 2);
         }
 
-        public bool TryFindNearestEdge(Point p, out int edgeOrderIndex, double tolerance = 5.0)
+        public bool TryFindNearestEdge(Point p, out int edgeOrderIndex, out Point projPoint, double tolerance = 5.0)
         {
             edgeOrderIndex = -1;
             double best = double.MaxValue;
+            projPoint = default;
 
             for (int i = 0; i < _edgeOrder.Count; i++)
             {
@@ -169,11 +170,12 @@ namespace Project1_PolygonEditor.Models
                 Point a = _verticesByID[e.V1ID].Position;
                 Point b = _verticesByID[e.V2ID].Position;
 
-                var d2 = DistSqPointToSeg(p, a, b, out _);
+                var d2 = DistSqPointToSeg(p, a, b, out Point proj);
                 if (d2 < best)
                 {
                     best = d2;
                     edgeOrderIndex = i;
+                    projPoint = proj;
                 }
             }
             return best <= tolerance * tolerance;
