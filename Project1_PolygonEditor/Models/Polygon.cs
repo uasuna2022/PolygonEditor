@@ -137,11 +137,93 @@ namespace Project1_PolygonEditor.Models
             }
 
             int newEid = _nextEdgeIdx++;
-            var newE = new Edge(newEid, prevVID, nextVID);
+            Edge newE = new Edge(newEid, prevVID, nextVID);
             _edgesByID.Add(newEid, newE);
 
             _edgeOrder.Insert(Math.Min(_edgeOrder.Count, idx == 0 ? _edgeOrder.Count : idx - 1), newEid);
         }
-        
+
+        private static double DistSqPointToSeg(Point p, Point a, Point b, out Point proj) // Calculate distance between a point P and a segment AB
+        {
+            double vx = b.X - a.X, vy = b.Y - a.Y;  // AB vector
+            double wx = p.X - a.X, wy = p.Y - a.Y;  // AP vector 
+            double sqLengthAB = vx * vx + vy * vy;  // |AB|^2
+            double t = sqLengthAB > 0 ? (wx * vx + wy * vy) / sqLengthAB : 0.0; // AB dot AP (dot product)
+            if (t < 0) 
+                t = 0; 
+            else if (t > 1) 
+                t = 1;
+
+            proj = new Point(a.X + t * vx, a.Y + t * vy);
+            return Math.Pow((p.X - proj.X), 2) + Math.Pow((p.Y - proj.Y), 2);
+        }
+
+        public bool TryFindNearestEdge(Point p, out int edgeOrderIndex, double tolerance = 5.0)
+        {
+            edgeOrderIndex = -1;
+            double best = double.MaxValue;
+
+            for (int i = 0; i < _edgeOrder.Count; i++)
+            {
+                Edge e = _edgesByID[_edgeOrder[i]];
+                Point a = _verticesByID[e.V1ID].Position;
+                Point b = _verticesByID[e.V2ID].Position;
+
+                var d2 = DistSqPointToSeg(p, a, b, out _);
+                if (d2 < best)
+                {
+                    best = d2;
+                    edgeOrderIndex = i;
+                }
+            }
+            return best <= tolerance * tolerance;
+        }
+
+        public Point GetEdgeMidpointByOrderIndex(int edgeOrderIndex)
+        {
+            if (edgeOrderIndex < 0 || edgeOrderIndex >= _edgeOrder.Count)
+                throw new ArgumentOutOfRangeException(nameof(edgeOrderIndex));
+            Edge e = _edgesByID[_edgeOrder[edgeOrderIndex]];
+            Point a = _verticesByID[e.V1ID].Position;
+            Point b = _verticesByID[e.V2ID].Position;
+            return new Point((a.X + b.X) * 0.5, (a.Y + b.Y) * 0.5);
+        }
+
+        public Vertex InsertVertexOnEdge(int edgeOrderIndex, Point pos)
+        {
+            if (edgeOrderIndex < 0 || edgeOrderIndex >= _edgeOrder.Count)
+                throw new ArgumentOutOfRangeException(nameof(edgeOrderIndex));
+
+            int oldEid = _edgeOrder[edgeOrderIndex];
+            Edge oldE = _edgesByID[oldEid];
+
+            Vertex newVertex = new Vertex(_nextVertexIdx, pos);
+            _verticesByID.Add(newVertex.ID, newVertex);
+            _nextVertexIdx++;
+
+            int v1Index = _vertexOrder.IndexOf(oldE.V1ID);
+            _vertexOrder.Insert(v1Index + 1, newVertex.ID);
+
+            _edgesByID.Remove(oldEid);
+            _edgeOrder.RemoveAt(edgeOrderIndex);
+
+            Edge e1 = new Edge(_nextEdgeIdx, oldE.V1ID, newVertex.ID); 
+            _edgesByID.Add(e1.ID, e1); _nextEdgeIdx++;
+            Edge e2 = new Edge(_nextEdgeIdx, newVertex.ID, oldE.V2ID); 
+            _edgesByID.Add(e2.ID, e2); _nextEdgeIdx++;
+
+
+            _edgeOrder.Insert(edgeOrderIndex, e2.ID);
+            _edgeOrder.Insert(edgeOrderIndex, e1.ID);
+
+            return newVertex;
+        }
+
+        public Vertex InsertVertexAtEdgeMidpoint(int edgeOrderIndex)
+        {
+            var mid = GetEdgeMidpointByOrderIndex(edgeOrderIndex);
+            return InsertVertexOnEdge(edgeOrderIndex, mid);
+        }
+
     }
 }

@@ -64,7 +64,8 @@
                 <Canvas Name="DrawingCanvas" Background="Transparent"
                         MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown"
                         MouseMove="DrawingCanvas_MouseMove"
-                        MouseLeave="DrawingCanvas_MouseLeave">
+                        MouseLeave="DrawingCanvas_MouseLeave"
+                        MouseRightButtonDown="DrawingCanvas_MouseRightButtonDown">
                 </Canvas>
             </Grid>
         </Border>

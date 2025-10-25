@@ -248,5 +248,18 @@ namespace Project1_PolygonEditor
                 }
             }
         }
+
+        private void DrawingCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            Point p = e.GetPosition(DrawingCanvas);
+
+            if (_polygon.TryFindNearestEdge(p, out int edgeIdx))
+            {
+                _polygon.InsertVertexAtEdgeMidpoint(edgeIdx);
+                RedrawAll();
+
+                e.Handled = true;
+            }
+        }
     }
 }
