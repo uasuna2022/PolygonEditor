@@ -1,0 +1,21 @@
+﻿<Window x:Class="Project1_PolygonEditor.InputDoubleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Project1_PolygonEditor"
+        mc:Ignorable="d"
+        Title="{Binding Title, RelativeSource={RelativeSource Self}}" Height="150" Width="300"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        Background="#fafafa">
+    <StackPanel Margin="16">
+        <TextBlock x:Name="PromptLabel" Text="Enter value:" Margin="0,0,0,8"/>
+        <TextBox x:Name="InputBox" Height="20" Text="{Binding InputValue}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="OK" Width="70" Margin="4,0,0,0" Background="LawnGreen" Click="Ok_Click"/>
+            <Button Content="Cancel" Width="70" Margin="4,0,0,0" Background="PaleVioletRed" Click="Cancel_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
