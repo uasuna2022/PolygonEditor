@@ -28,14 +28,17 @@ namespace Project1_PolygonEditor.View
                 Stroke = Brushes.Black,
                 StrokeThickness = 1.0
             };
-
-            Canvas.SetLeft(Shape, Model.Position.X - Radius);
-            Canvas.SetTop(Shape, Model.Position.Y - Radius);
         }
 
-        public void DrawVertex(Canvas canvas)
+        public Ellipse DrawVertex(Canvas canvas)
         {
+            Canvas.SetLeft(Shape, Model.Position.X - Radius);
+            Canvas.SetTop(Shape, Model.Position.Y - Radius);
+
+            Shape.Tag = Model.ID;
             canvas.Children.Add(Shape);
+
+            return Shape;
         }
 
         public void SyncToModel()

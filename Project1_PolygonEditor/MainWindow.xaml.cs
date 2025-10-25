@@ -11,6 +11,7 @@ using System.Windows.Navigation;
 using Project1_PolygonEditor.Models;
 using Project1_PolygonEditor.View;
 using System.Runtime.ConstrainedExecution;
+using Project1_PolygonEditor.Enum_classes;
 
 
 
@@ -26,11 +27,13 @@ namespace Project1_PolygonEditor
 
         private Polygon _polygon;
         private System.Windows.Shapes.Line? _rubberLine;
+        private List<VertexFigure> _vertexFigures;
         public MainWindow()
         {
             InitializeComponent();
             _drawStrategy = new LibraryLineStrategy(DrawingCanvas);
             _polygon = new Polygon();
+            _vertexFigures = new List<VertexFigure>();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -40,16 +43,9 @@ namespace Project1_PolygonEditor
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
         {
-            
-            if (_polygon.VertexCount >= 2)
-            {
-                _polygon.DeleteVertex(_polygon.GetVertexByOrder(2).ID);
-                RedrawAll();
-                return;
-            }
-            
             DrawingCanvas.Children.Clear();
             _polygon.Clear();
+            _vertexFigures.Clear();
             _rubberLine = null;
         }
 
@@ -82,7 +78,10 @@ namespace Project1_PolygonEditor
                 return;
 
             Vertex v = _polygon.AddVertex(p);
-            new VertexFigure(v).DrawVertex(DrawingCanvas);
+            VertexFigure vf = new VertexFigure(v);
+            vf.DrawVertex(DrawingCanvas);
+            _vertexFigures.Add(vf);
+            AttachVertexContextMenu(vf);
 
             if (_polygon.VertexCount >= 2)
             {
@@ -100,12 +99,14 @@ namespace Project1_PolygonEditor
         {
             CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Library;
             _drawStrategy = new LibraryLineStrategy(DrawingCanvas);
+            RedrawAll();
         }
 
         private void BresenhamAlgorithmRadioButton_Checked(object sender, RoutedEventArgs e)
         {
             CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Bresenham;
             _drawStrategy = new BresenhamLineStrategy(DrawingCanvas);
+            RedrawAll();
         }
 
         private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -145,6 +146,9 @@ namespace Project1_PolygonEditor
 
         private void RedrawAll()
         {
+            if (DrawingCanvas == null)
+                return;
+
             DrawingCanvas.Children.Clear();
             
             if (_polygon.EdgeCount > 0)
@@ -163,14 +167,86 @@ namespace Project1_PolygonEditor
                 }
             }
 
+            _vertexFigures.Clear();
             for (int i = 0; i < _polygon.VertexCount; i++)
             {
                 Vertex v = _polygon.GetVertexByOrder(i);
-                new VertexFigure(v).DrawVertex(DrawingCanvas);
-                //AttachVertexContextMenu(vf);
+                VertexFigure vf = new VertexFigure(v);
+                vf.DrawVertex(DrawingCanvas);
+                AttachVertexContextMenu(vf);
+                _vertexFigures.Add(vf);
             }
 
             _rubberLine = null;
+        }
+        private void AttachVertexContextMenu(VertexFigure vf)
+        {
+            ContextMenu cm = new ContextMenu();
+
+            MenuItem miDelete = new MenuItem 
+            { 
+                Header = "Delete vertex"
+            };
+            miDelete.Click += (s, e) =>
+            {
+                int vertexID = vf.Model.ID;
+                _polygon.DeleteVertex(vertexID);
+                _vertexFigures.Remove(vf);
+                RedrawAll();
+            };
+
+            cm.Items.Add(miDelete);
+            cm.Items.Add(new Separator());
+
+            MenuItem miSetContinuityType = new MenuItem
+            {
+                Header = "Set continuity type",
+                IsEnabled = true
+            };
+
+            foreach (ContinuityType t in Enum.GetValues(typeof(ContinuityType)))
+            {
+                var item = new MenuItem 
+                { 
+                    Header = t.ToString(), 
+                    IsCheckable = true 
+                };
+                item.IsChecked = (vf.Model.ContinuityType == t);
+                item.Click += (s, e) =>
+                {
+                    vf.Model.SetContinuityType(t);
+                    RedrawAll();
+                };
+                miSetContinuityType.Items.Add(item);
+            }
+
+            cm.Items.Add(miSetContinuityType);
+
+            vf.Shape.ContextMenu = cm;
+            vf.Shape.MouseRightButtonDown += (s, e) =>
+            {
+                SyncContinuityMenuState(vf.Model.ID, miSetContinuityType, vf.Model.ContinuityType);
+                miDelete.IsEnabled = (_polygon.VertexCount >= 4) ? true : false;
+                vf.Shape.ContextMenu.IsOpen = true;
+                e.Handled = true;
+            };
+        }
+
+        private void SyncContinuityMenuState(int vertexId, MenuItem continuityMenu, ContinuityType current)
+        {
+            var (prevEdge, nextEdge) = _polygon.GetIncidentEdges(vertexId);
+            bool bothLines = prevEdge.EdgeType == EdgeType.Line && nextEdge.EdgeType == EdgeType.Line;
+
+            foreach (MenuItem mi in continuityMenu.Items)
+            {
+                if (Enum.TryParse(mi.Header.ToString(), out ContinuityType t))
+                {
+                    mi.IsChecked = (t == current);
+
+                    if (t == ContinuityType.G0) mi.IsEnabled = true;
+                    else mi.IsEnabled = !bothLines;
+                }
+            }
         }
     }
 }
