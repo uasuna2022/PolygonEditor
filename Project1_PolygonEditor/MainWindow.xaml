@@ -65,7 +65,8 @@
                         MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown"
                         MouseMove="DrawingCanvas_MouseMove"
                         MouseLeave="DrawingCanvas_MouseLeave"
-                        MouseRightButtonDown="DrawingCanvas_MouseRightButtonDown">
+                        MouseRightButtonDown="DrawingCanvas_MouseRightButtonDown"
+                        MouseLeftButtonUp="DrawingCanvas_MouseLeftButtonUp">
                 </Canvas>
             </Grid>
         </Border>

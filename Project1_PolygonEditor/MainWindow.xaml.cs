@@ -28,6 +28,10 @@ namespace Project1_PolygonEditor
         private Polygon _polygon;
         private System.Windows.Shapes.Line? _rubberLine;
         private List<VertexFigure> _vertexFigures;
+
+        private VertexFigure? _draggingVertex;
+        private Point _dragCaptureOffset; // cursor - vertex center at press
+
         public MainWindow()
         {
             InitializeComponent();
@@ -47,6 +51,10 @@ namespace Project1_PolygonEditor
             _polygon.Clear();
             _vertexFigures.Clear();
             _rubberLine = null;
+            _draggingVertex = null;
+
+            if (DrawingCanvas.IsMouseCaptured) 
+                DrawingCanvas.ReleaseMouseCapture();
         }
 
         private void DrawingCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -111,6 +119,30 @@ namespace Project1_PolygonEditor
 
         private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (_draggingVertex != null)
+            {
+                Point cursor = e.GetPosition(DrawingCanvas);
+                Point newPos = new Point(cursor.X - _dragCaptureOffset.X, cursor.Y - _dragCaptureOffset.Y);
+
+                int draggedID = _draggingVertex.Model.ID;
+
+                _draggingVertex.Model.SetPosition(newPos);
+
+                RedrawAll();
+                _draggingVertex = _vertexFigures.First(vf => vf.Model.ID == draggedID);
+                _draggingVertex.SyncToModel();
+
+                if (_rubberLine != null)
+                {
+                    DrawingCanvas.Children.Remove(_rubberLine);
+                    _rubberLine = null;
+                }
+
+                return;
+            }
+
+
+
             if (_polygon.IsClosed || _polygon.VertexCount == 0)
                 return;
 
@@ -230,6 +262,49 @@ namespace Project1_PolygonEditor
                 vf.Shape.ContextMenu.IsOpen = true;
                 e.Handled = true;
             };
+
+            vf.Shape.MouseLeftButtonDown += (s, e) =>
+            {
+                if (!_polygon.IsClosed)
+                {
+                    Point cursor = e.GetPosition(DrawingCanvas);
+                    if (_polygon.FirstVertex != null && vf.Model.ID == _polygon.FirstVertex.ID && _polygon.VertexCount >= 3)
+                    {
+                        _drawStrategy.DrawLine(_polygon.LastVertex!.Position, _polygon.FirstVertex!.Position);
+                        Edge closingEdge = _polygon.Close();
+
+                        if (_rubberLine != null)
+                        {
+                            DrawingCanvas.Children.Remove(_rubberLine);
+                            _rubberLine = null;
+                        }
+
+                        RedrawAll();
+                        e.Handled = true;
+                    }
+
+                    return;
+                }
+
+                Point cursorPos = e.GetPosition(DrawingCanvas);
+                Point center = vf.Model.Position;                     
+                _draggingVertex = vf;
+                _dragCaptureOffset = new Point(cursorPos.X - center.X, cursorPos.Y - center.Y);
+
+                DrawingCanvas.CaptureMouse();
+                e.Handled = true;                                   
+            };
+
+            vf.Shape.MouseLeftButtonUp += (s, e) =>
+            {
+                if (_draggingVertex == vf)
+                {
+                    _draggingVertex = null;
+                    vf.Shape.ReleaseMouseCapture();
+                    e.Handled = true;
+                }
+            };
+
         }
 
         private void SyncContinuityMenuState(int vertexId, MenuItem continuityMenu, ContinuityType current)
@@ -258,6 +333,16 @@ namespace Project1_PolygonEditor
                 _polygon.InsertVertexAtEdgeMidpoint(edgeIdx);
                 RedrawAll();
 
+                e.Handled = true;
+            }
+        }
+
+        private void DrawingCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_draggingVertex != null)
+            {
+                DrawingCanvas.ReleaseMouseCapture();
+                _draggingVertex = null;
                 e.Handled = true;
             }
         }
