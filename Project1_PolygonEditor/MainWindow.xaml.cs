@@ -40,8 +40,17 @@ namespace Project1_PolygonEditor
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
         {
+            
+            if (_polygon.VertexCount >= 2)
+            {
+                _polygon.DeleteVertex(_polygon.GetVertexByOrder(2).ID);
+                RedrawAll();
+                return;
+            }
+            
             DrawingCanvas.Children.Clear();
             _polygon.Clear();
+            _rubberLine = null;
         }
 
         private void DrawingCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -80,6 +89,10 @@ namespace Project1_PolygonEditor
                 Point p1 = _polygon.GetVertexByOrder(_polygon.VertexCount - 2).Position;
                 Point p2 = _polygon.LastVertex!.Position;
                 _drawStrategy.DrawLine(p1, p2);
+
+                int v1Id = _polygon.GetVertexByOrder(_polygon.VertexCount - 2).ID;
+                int v2Id = v.ID;
+                _polygon.AddEdge(v1Id, v2Id);
             }
         }
 
@@ -121,7 +134,6 @@ namespace Project1_PolygonEditor
             _rubberLine.Y2 = current.Y;
 
         }
-
         private void DrawingCanvas_MouseLeave(object sender, MouseEventArgs e)
         {
             if (_rubberLine != null)
@@ -129,6 +141,36 @@ namespace Project1_PolygonEditor
                 DrawingCanvas.Children.Remove(_rubberLine);
                 _rubberLine = null;
             }
+        }
+
+        private void RedrawAll()
+        {
+            DrawingCanvas.Children.Clear();
+            
+            if (_polygon.EdgeCount > 0)
+            {
+                for (int i = 0; i < _polygon.VertexCount - 1; i++)
+                {
+                    var a = _polygon.GetVertexByOrder(i).Position;
+                    var b = _polygon.GetVertexByOrder(i + 1).Position;
+                    _drawStrategy.DrawLine(a, b);
+                }
+                if (_polygon.IsClosed)
+                {
+                    var a = _polygon.LastVertex!.Position;
+                    var b = _polygon.FirstVertex!.Position;
+                    _drawStrategy.DrawLine(a, b);
+                }
+            }
+
+            for (int i = 0; i < _polygon.VertexCount; i++)
+            {
+                Vertex v = _polygon.GetVertexByOrder(i);
+                new VertexFigure(v).DrawVertex(DrawingCanvas);
+                //AttachVertexContextMenu(vf);
+            }
+
+            _rubberLine = null;
         }
     }
 }

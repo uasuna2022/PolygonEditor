@@ -96,5 +96,52 @@ namespace Project1_PolygonEditor.Models
 
         public Vertex GetVertexByOrder(int idx) => _verticesByID[_vertexOrder[idx]];
         public Vertex GetVertexById(int id) => _verticesByID[id];
+        public int GetVertexOrderIndexById(int id) => _vertexOrder.IndexOf(id);
+
+        public (int prevVID, int nextVID) GetNeighborsOfVertex(int vertexID)
+        {
+            int i = GetVertexOrderIndexById(vertexID);
+            if (i < 0)
+                throw new ArgumentException("Vertex not found!");
+            int prev = (i != 0) ? _vertexOrder[i - 1] : _vertexOrder[^1];
+            int next = (i != VertexCount - 1) ? _vertexOrder[i + 1] : _vertexOrder[0];
+            return (prev, next);
+        }
+        public (Edge prev, Edge next) GetIncidentEdges(int vertexID)
+        {
+            var (prevID, nextID) = GetNeighborsOfVertex(vertexID);
+            Edge prevEdge = _edgesByID[_edgeOrder.First(eid => _edgesByID[eid].V2ID == vertexID)];
+            Edge nextEdge = _edgesByID[_edgeOrder.First(eid => _edgesByID[eid].V1ID == vertexID)];
+            return (prevEdge, nextEdge);
+        }
+        public void DeleteVertex(int vertexId)
+        {
+            int idx = GetVertexOrderIndexById(vertexId);
+            var (prevVID, nextVID) = GetNeighborsOfVertex(vertexId);
+
+            int prevEid = _edgeOrder.First(eid => _edgesByID[eid].V1ID == prevVID && _edgesByID[eid].V2ID == vertexId);
+            int nextEid = _edgeOrder.First(eid => _edgesByID[eid].V1ID == vertexId && _edgesByID[eid].V2ID == nextVID);
+
+            _edgeOrder.Remove(prevEid);
+            _edgeOrder.Remove(nextEid);
+            _edgesByID.Remove(prevEid);
+            _edgesByID.Remove(nextEid);
+
+            _vertexOrder.RemoveAt(idx);
+            _verticesByID.Remove(vertexId);
+
+            if (VertexCount < 3)
+            {
+                Clear();
+                return;
+            }
+
+            int newEid = _nextEdgeIdx++;
+            var newE = new Edge(newEid, prevVID, nextVID);
+            _edgesByID.Add(newEid, newE);
+
+            _edgeOrder.Insert(Math.Min(_edgeOrder.Count, idx == 0 ? _edgeOrder.Count : idx - 1), newEid);
+        }
+        
     }
 }
