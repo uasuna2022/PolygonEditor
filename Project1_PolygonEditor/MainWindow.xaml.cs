@@ -10,6 +10,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using Project1_PolygonEditor.Models;
 using Project1_PolygonEditor.View;
+using System.Runtime.ConstrainedExecution;
+
+
 
 namespace Project1_PolygonEditor
 {
@@ -22,13 +25,12 @@ namespace Project1_PolygonEditor
         public DrawingAlgorithm CurrentSectionDrawingAlgorithm { get; private set; } = DrawingAlgorithm.Library;
 
         private Polygon _polygon;
+        private System.Windows.Shapes.Line? _rubberLine;
         public MainWindow()
         {
             InitializeComponent();
             _drawStrategy = new LibraryLineStrategy(DrawingCanvas);
             _polygon = new Polygon();
-
-            DrawingCanvas.MouseLeftButtonDown += DrawingCanvas_MouseLeftButtonDown;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -54,7 +56,13 @@ namespace Project1_PolygonEditor
             {
                 _drawStrategy.DrawLine(_polygon.LastVertex!.Position, _polygon.FirstVertex!.Position);
                 Edge closingEdge = _polygon.Close();
-
+                
+                if (_rubberLine != null)
+                {
+                    DrawingCanvas.Children.Remove(_rubberLine);
+                    _rubberLine = null;
+                }
+                
                 return;
             }
 
@@ -82,6 +90,42 @@ namespace Project1_PolygonEditor
         {
             CurrentSectionDrawingAlgorithm = DrawingAlgorithm.Bresenham;
             _drawStrategy = new BresenhamLineStrategy(DrawingCanvas);
-        } 
+        }
+
+        private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_polygon.IsClosed || _polygon.VertexCount == 0)
+                return;
+
+            Point last = _polygon.LastVertex!.Position;
+            Point current = e.GetPosition(DrawingCanvas);
+
+            if (_rubberLine == null)
+            {
+                _rubberLine = new System.Windows.Shapes.Line
+                {
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = 1.0,
+                    StrokeDashArray = new DoubleCollection { 4, 4 }, 
+                    IsHitTestVisible = false                          
+                };
+                DrawingCanvas.Children.Add(_rubberLine);
+            }
+
+            _rubberLine.X1 = last.X; 
+            _rubberLine.Y1 = last.Y;
+            _rubberLine.X2 = current.X; 
+            _rubberLine.Y2 = current.Y;
+
+        }
+
+        private void DrawingCanvas_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_rubberLine != null)
+            {
+                DrawingCanvas.Children.Remove(_rubberLine);
+                _rubberLine = null;
+            }
+        }
     }
 }

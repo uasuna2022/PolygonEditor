@@ -62,7 +62,9 @@
                 BorderBrush="#dddddd" Margin="5" Name="WorkspaceBorder">
             <Grid Name="WorkspaceGrid" ShowGridLines="True">
                 <Canvas Name="DrawingCanvas" Background="Transparent"
-                        MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown">
+                        MouseLeftButtonDown="DrawingCanvas_MouseLeftButtonDown"
+                        MouseMove="DrawingCanvas_MouseMove"
+                        MouseLeave="DrawingCanvas_MouseLeave">
                 </Canvas>
             </Grid>
         </Border>
