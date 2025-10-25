@@ -66,6 +66,9 @@ namespace Project1_PolygonEditor
                 return;
             }
 
+            if (idx == 0 && !_polygon.CanClose)
+                return;
+
             if (idx > 0)
                 return;
 

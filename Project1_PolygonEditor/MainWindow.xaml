@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen"
         Background="#fafafa" Loaded="Window_Loaded" ResizeMode="CanMinimize">
 
-    <Grid ShowGridLines="True">
+    <Grid ShowGridLines="False">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
