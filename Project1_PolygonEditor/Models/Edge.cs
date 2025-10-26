@@ -5,6 +5,7 @@ using System.Windows;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Shapes;
 
 namespace Project1_PolygonEditor.Models
 {
@@ -23,6 +24,7 @@ namespace Project1_PolygonEditor.Models
 
         public Point? ArcCenter { get; private set; }
         public double? ArcRadius { get; private set; }
+        public bool ArcFlipSide { get; private set; } = false;
 
 
         public Edge(int id, int v1id, int v2id)
@@ -44,13 +46,16 @@ namespace Project1_PolygonEditor.Models
             BezierCP1 = cp1;
             BezierCP2 = cp2;
         }
-        public void SetTypeArc(Point center, double r)
+        public void SetTypeArc()
         {
             EdgeType = EdgeType.Arc;
             ConstrainType = ConstrainType.None;
+            /*
             ArcCenter = center;
             ArcRadius = r;
+            */
         }
+        public void SwitchArcSide() => ArcFlipSide = !ArcFlipSide;
 
         public void SetConstraint(ConstrainType newConstrainType, double fixedLength = 0)
         {
