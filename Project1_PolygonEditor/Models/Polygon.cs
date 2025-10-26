@@ -249,5 +249,25 @@ namespace Project1_PolygonEditor.Models
             if (knownVertexId == e.V2ID) return e.V1ID;
             throw new ArgumentException("Vertex is not incident to this edge.");
         }
+        // NEW
+        public void SetEdgeTypeBezierByOrderIndex(int edgeOrderIndex, Point cp1, Point cp2)
+        {
+            Edge e = GetEdgeByOrderIndex(edgeOrderIndex);
+            e.SetTypeBezier(cp1, cp2);
+        }
+
+        public void SetBezierControlPointsByOrderIndex(int edgeOrderIndex, Point cp1, Point cp2)
+        {
+            Edge e = GetEdgeByOrderIndex(edgeOrderIndex);
+            e.SetBezierControlPoints(cp1, cp2);
+        }
+
+        public (Point a, Point b) GetEdgeEndpointsByOrderIndex(int i)
+        {
+            Edge e = GetEdgeByOrderIndex(i);
+            var a = _verticesByID[e.V1ID].Position;
+            var b = _verticesByID[e.V2ID].Position;
+            return (a, b);
+        }
     }
 }

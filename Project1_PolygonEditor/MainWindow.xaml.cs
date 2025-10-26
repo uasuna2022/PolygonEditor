@@ -36,6 +36,10 @@ namespace Project1_PolygonEditor
         private int _edgeCtxIndex = -1;
         private Point _edgeCtxPoint;
 
+        // NEW
+        private List<BezierControlPointFigure> _cpFigures = new();
+        private BezierControlPointFigure? _draggingCP;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -43,7 +47,6 @@ namespace Project1_PolygonEditor
             _polygon = new Polygon();
             _vertexFigures = new List<VertexFigure>();
         }
-
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             
@@ -56,6 +59,8 @@ namespace Project1_PolygonEditor
             _vertexFigures.Clear();
             _rubberLine = null;
             _draggingVertex = null;
+            _cpFigures.Clear();
+            _draggingCP = null;
 
             if (DrawingCanvas.IsMouseCaptured) 
                 DrawingCanvas.ReleaseMouseCapture();
@@ -145,6 +150,25 @@ namespace Project1_PolygonEditor
                 return;
             }
 
+            if (_draggingCP != null)
+            {
+                Point cursor = e.GetPosition(DrawingCanvas);
+                // Update model CP position
+                int eid = _draggingCP.EdgeId;
+                var edgeIdx = _polygon.GetEdgeOrderIndexById(eid);
+                var edge = _polygon.GetEdgeByOrderIndex(edgeIdx);
+
+                if (edge.EdgeType == EdgeType.BezierCubic)
+                {
+                    if (_draggingCP.IsFirst)
+                        edge.SetBezierControlPoints(new Point(cursor.X, cursor.Y), edge.BezierCP2!.Value);
+                    else
+                        edge.SetBezierControlPoints(edge.BezierCP1!.Value, new Point(cursor.X, cursor.Y));
+                }
+
+                RedrawAll(); // rebuild handles and geometry
+                return;
+            }
 
 
             if (_polygon.IsClosed || _polygon.VertexCount == 0)
@@ -186,22 +210,42 @@ namespace Project1_PolygonEditor
                 return;
 
             DrawingCanvas.Children.Clear();
-            
+
             if (_polygon.EdgeCount > 0)
             {
-                for (int i = 0; i < _polygon.VertexCount - 1; i++)
+                for (int i = 0; i < _polygon.EdgeCount; i++)
                 {
-                    var a = _polygon.GetVertexByOrder(i).Position;
-                    var b = _polygon.GetVertexByOrder(i + 1).Position;
-                    _drawStrategy.DrawLine(a, b);
-                }
-                if (_polygon.IsClosed)
-                {
-                    var a = _polygon.LastVertex!.Position;
-                    var b = _polygon.FirstVertex!.Position;
-                    _drawStrategy.DrawLine(a, b);
+                    var e = _polygon.GetEdgeByOrderIndex(i);
+                    var a = _polygon.GetVertexById(e.V1ID).Position;
+                    var b = _polygon.GetVertexById(e.V2ID).Position;
+
+                    switch (e.EdgeType)
+                    {
+                        case EdgeType.Line:
+                            _drawStrategy.DrawLine(a, b);
+                            break;
+
+                        case EdgeType.BezierCubic:
+                            if (e.BezierCP1 == null || e.BezierCP2 == null)
+                            {
+                                // fallback: draw chord
+                                _drawStrategy.DrawLine(a, b);
+                            }
+                            else
+                            {
+                                DrawCubicBezier(a, e.BezierCP1.Value, e.BezierCP2.Value, b);
+                                DrawBezierControlsAndHandles(i);
+                            }
+                            break;
+
+                        case EdgeType.Arc:
+                            // (Later) – for now, chord fallback:
+                            _drawStrategy.DrawLine(a, b);
+                            break;
+                    }
                 }
             }
+
 
             _vertexFigures.Clear();
             for (int i = 0; i < _polygon.VertexCount; i++)
@@ -382,6 +426,14 @@ namespace Project1_PolygonEditor
                 _draggingVertex = null;
                 e.Handled = true;
             }
+
+            if (_draggingCP != null)
+            {
+                DrawingCanvas.ReleaseMouseCapture();
+                _draggingCP = null;
+                e.Handled = true;
+                return;
+            }
         }
 
         private void ShowEdgeContextMenu()
@@ -498,9 +550,21 @@ namespace Project1_PolygonEditor
             };
             cm.Items.Add(miRemoveConstraint);
 
-            
-            // TODO
-            MenuItem miBezier = new MenuItem { Header = "Bezier Curve", IsEnabled = false }; // TODO: toggle edge to Bezier
+
+            // NEW
+            MenuItem miBezier = new MenuItem 
+            { 
+                Header = "Bezier Curve", 
+                IsCheckable = true, 
+                IsChecked = edge.EdgeType == EdgeType.BezierCubic 
+            };
+            miBezier.Click += (s, _) =>
+            {
+                var (p0, p3) = _polygon.GetEdgeEndpointsByOrderIndex(_edgeCtxIndex);
+                var (cp1, cp2) = DefaultBezierCPs(p0, p3);
+                _polygon.SetEdgeTypeBezierByOrderIndex(_edgeCtxIndex, cp1, cp2);
+                RedrawAll();
+            };
             cm.Items.Add(miBezier);
 
             MenuItem miArc = new MenuItem { Header = "Arc", IsEnabled = false }; // TODO: toggle edge to Arc
@@ -541,6 +605,104 @@ namespace Project1_PolygonEditor
             };
 
             return border;
+        }
+        // NEW
+        private (Point cp1, Point cp2) DefaultBezierCPs(Point p0, Point p3)
+        {
+            // Default placement of Bezier Control Points
+            Point cp1 = new Point(p0.X + (p3.X - p0.X) / 3, p0.Y + (p3.Y - p0.Y) / 3);
+            Point cp2 = new Point(p0.X + 2 * (p3.X - p0.X) / 3, p0.Y + 2 * (p3.Y - p0.Y) / 3);
+            return (cp1, cp2);
+        }
+        private void DrawCubicBezier(Point p0, Point p1, Point p2, Point p3)
+        {
+            const int STEPS = 100; // Defining accuracy of the curve (amount of steps)
+            Point prevPoint = p0;
+
+            for (int i = 1; i <= STEPS; i++)
+            {
+                double t = (double)i / STEPS;
+                double mt = 1 - t;
+
+                // Bernstein basis
+                double b0 = mt * mt * mt;
+                double b1 = 3 * mt * mt * t;
+                double b2 = 3 * mt * t * t;
+                double b3 = t * t * t;
+
+                // Overall formula for every point:
+                // P(t) = p0(1-t)^3 + p1 * 3t(1-t)^2 + p2 * 3t^2(1-t) + p3t^3
+
+                Point currPoint = new Point(b0 * p0.X + b1 * p1.X + b2 * p2.X + b3 * p3.X, 
+                    b0 * p0.Y + b1 * p1.Y + b2 * p2.Y + b3 * p3.Y);
+
+                _drawStrategy.DrawLine(prevPoint, currPoint);
+                prevPoint = currPoint;
+            }
+        }
+        private void DrawBezierControlsAndHandles(int edgeOrderIndex)
+        {
+            var e = _polygon.GetEdgeByOrderIndex(edgeOrderIndex);
+            if (e.BezierCP1 == null || e.BezierCP2 == null) return;
+
+            var (p0, p3) = _polygon.GetEdgeEndpointsByOrderIndex(edgeOrderIndex);
+            Point p1 = e.BezierCP1.Value;
+            Point p2 = e.BezierCP2.Value;
+
+            // Define of dash line for control polygon
+            void drawDashedLine(Point a, Point b)
+            {
+                System.Windows.Shapes.Line l = new System.Windows.Shapes.Line
+                {
+                    X1 = a.X,
+                    Y1 = a.Y,
+                    X2 = b.X,
+                    Y2 = b.Y,
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = 1.0,
+                    StrokeDashArray = new DoubleCollection { 3, 3 },
+                    IsHitTestVisible = false
+                };
+                DrawingCanvas.Children.Add(l);
+            }
+
+            drawDashedLine(p0, p1);
+            drawDashedLine(p1, p2);
+            drawDashedLine(p2, p3);
+
+            // Define of control points' figures
+            BezierControlPointFigure cp1Fig = new BezierControlPointFigure(e.ID, true, p1);
+            BezierControlPointFigure cp2Fig = new BezierControlPointFigure(e.ID, false, p2);
+            cp1Fig.DrawFigure(DrawingCanvas);
+            cp2Fig.DrawFigure(DrawingCanvas);
+
+            // Attach handlers
+            AttachControlPointHandlers(cp1Fig);
+            AttachControlPointHandlers(cp2Fig);
+
+            _cpFigures.Add(cp1Fig);
+            _cpFigures.Add(cp2Fig);
+        }
+
+        private void AttachControlPointHandlers(BezierControlPointFigure cpf)
+        {
+            cpf.Shape.MouseLeftButtonDown += (s, ev) =>
+            {
+                _draggingCP = cpf;
+
+                DrawingCanvas.CaptureMouse();
+                ev.Handled = true;
+            };
+
+            cpf.Shape.MouseLeftButtonUp += (s, ev) =>
+            {
+                if (_draggingCP == cpf)
+                {
+                    _draggingCP = null;
+                    DrawingCanvas.ReleaseMouseCapture();
+                    ev.Handled = true;
+                }
+            };
         }
 
     }
