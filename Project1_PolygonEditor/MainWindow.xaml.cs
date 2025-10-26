@@ -248,12 +248,6 @@ namespace Project1_PolygonEditor
                             break;
 
                         case EdgeType.Arc:
-                            /*
-                            if (TryComputeArc(e, out var O, out var R, out var a0, out var a1, out var cw))
-                                DrawArcPolyline(O, R, a0, a1, cw);
-                            else
-                                _drawStrategy.DrawLine(a, b); // robust fallback
-                            */
                             _drawStrategy.DrawLine(a, b); 
                             break;
                     }
@@ -337,6 +331,12 @@ namespace Project1_PolygonEditor
                 item.Click += (s, e) =>
                 {
                     vf.Model.SetContinuityType(t);
+                    Continuity.ContinuityResolver.EnforceAt(
+                        vf.Model.ID,
+                        _polygon,
+                        vf.Model.ContinuityType,
+                        false   // we are not dragging a control point
+                    );
                     RedrawAll();
                 };
                 miSetContinuityType.Items.Add(item);

@@ -27,38 +27,52 @@ namespace Project1_PolygonEditor.Continuity
 
             if (oneStraightOneBezier)
             {
-                // 1) identify straight edge and its "other" vertex
                 var straightEdge = prevBezier ? next : prev;
+                var bezierEdge = prevBezier ? prev : next;
+
                 int otherId = (straightEdge.V1ID == vertexId) ? straightEdge.V2ID : straightEdge.V1ID;
                 var otherPos = polygon.GetVertexById(otherId).Position;
+                var vPos = v; // corner
 
-                // 2) direction = opposite extension of the STRAIGHT edge through v
-                var vToOpp = Geometry.Mirror(v, otherPos);
-
-                // 3) choose a length (G1: keep current if present, else default ~ 1/3 of straight edge)
-                var bezierEdge = prevBezier ? prev : next;
                 bool bezierStartsHere = (bezierEdge.V1ID == vertexId);
+                Point cp = bezierStartsHere
+                    ? bezierEdge.BezierCP1!.Value
+                    : bezierEdge.BezierCP2!.Value;
 
-                double currentLen = bezierStartsHere
-                    ? (bezierEdge.BezierCP1.HasValue ? Geometry.Dist(v, bezierEdge.BezierCP1.Value) : 0.0)
-                    : (bezierEdge.BezierCP2.HasValue ? Geometry.Dist(v, bezierEdge.BezierCP2.Value) : 0.0);
+                // Desired direction for the straight edge is the OPPOSITE of the handle direction
+                Vector dir = new Vector(vPos.X - cp.X, vPos.Y - cp.Y);
+                double lenDir = dir.Length;
+                if (lenDir < 1e-9) return true;
+                dir /= lenDir;
 
-                double d = (currentLen > 1e-9) ? currentLen : Math.Max(Geometry.Dist(v, otherPos) / 3.0, 1.0);
+                // keep straight-edge length (unless FixedLength is present, we keep that too)
+                double L = (straightEdge.ConstrainType == ConstrainType.FixedLength)
+                    ? straightEdge.FixedLength
+                    : Polygon.Distance(vPos, otherPos);
 
-                // 4) set the handle on the Bézier edge at THIS vertex
+                if (isMovingControlPoint && straightEdge.ConstrainType != ConstrainType.Horizontal
+                                          && straightEdge.ConstrainType != ConstrainType.Diagonal45)
+                {
+                    // rotate the straight edge to follow the handle
+                    Point newOther = new Point(vPos.X + dir.X * L, vPos.Y + dir.Y * L);
+                    polygon.GetVertexById(otherId).SetPosition(newOther);
+                    return true;
+                }
+
+                // Fallback: do not move constrained straight edges; just re-aim the handle (previous logic)
+                var vToOpp = Geometry.Mirror(vPos, otherPos);
+                double d = bezierStartsHere
+                    ? (bezierEdge.BezierCP1.HasValue ? Geometry.Dist(vPos, bezierEdge.BezierCP1.Value) : Math.Max(L / 3.0, 1.0))
+                    : (bezierEdge.BezierCP2.HasValue ? Geometry.Dist(vPos, bezierEdge.BezierCP2.Value) : Math.Max(L / 3.0, 1.0));
+
                 if (bezierStartsHere)
-                    bezierEdge.SetBezierControlPoints(
-                        Geometry.WithDistance(v, vToOpp, d),
-                        bezierEdge.BezierCP2 ?? v
-                    );
+                    bezierEdge.SetBezierControlPoints(Geometry.WithDistance(vPos, vToOpp, d), bezierEdge.BezierCP2 ?? vPos);
                 else
-                    bezierEdge.SetBezierControlPoints(
-                        bezierEdge.BezierCP1 ?? v,
-                        Geometry.WithDistance(v, vToOpp, d)
-                    );
+                    bezierEdge.SetBezierControlPoints(bezierEdge.BezierCP1 ?? vPos, Geometry.WithDistance(vPos, vToOpp, d));
 
                 return true;
             }
+
 
 
             // Stationary G1 enforcement (no neighbor-moves unless needed)
