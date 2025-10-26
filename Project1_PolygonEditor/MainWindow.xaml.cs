@@ -441,7 +441,8 @@ namespace Project1_PolygonEditor
                 double currentLength = Polygon.Distance(_polygon.GetVertexById(edge.V1ID).Position,
                     _polygon.GetVertexById(edge.V2ID).Position);
 
-                InputDoubleWindow w = new InputDoubleWindow("Fixed length", "Please enter a fixed value of this edge [10, 1000]:", currentLength);
+                InputDoubleWindow w = new InputDoubleWindow("Fixed length", "Please enter a fixed value of this edge [10, 1000]:",
+                    currentLength);
                 w.Owner = this;
                 bool? result = w.ShowDialog();
 

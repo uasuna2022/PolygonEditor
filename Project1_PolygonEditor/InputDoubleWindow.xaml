@@ -14,8 +14,10 @@
         <TextBlock x:Name="PromptLabel" Text="Enter value:" Margin="0,0,0,8"/>
         <TextBox x:Name="InputBox" Height="20" Text="{Binding InputValue}" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="OK" Width="70" Margin="4,0,0,0" Background="LawnGreen" Click="Ok_Click"/>
-            <Button Content="Cancel" Width="70" Margin="4,0,0,0" Background="PaleVioletRed" Click="Cancel_Click"/>
+            <Button Content="OK" Width="70" Margin="4,0,0,0" Background="LawnGreen" Click="Ok_Click"
+                    IsDefault="True"/>
+            <Button Content="Cancel" Width="70" Margin="4,0,0,0" Background="PaleVioletRed" Click="Cancel_Click"
+                    IsCancel="True"/>
         </StackPanel>
     </StackPanel>
 </Window>
