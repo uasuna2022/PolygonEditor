@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Project1_PolygonEditor"
         mc:Ignorable="d"
-        Title="{Binding Title, RelativeSource={RelativeSource Self}}" Height="150" Width="300"
-        WindowStartupLocation="CenterScreen"
+        Title="{Binding Title, RelativeSource={RelativeSource Self}}" Height="150" Width="310"
+        WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="ToolWindow"
         Background="#fafafa">

@@ -46,7 +46,7 @@ namespace Project1_PolygonEditor
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-
+            
         }
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
@@ -377,22 +377,106 @@ namespace Project1_PolygonEditor
             cm.Items.Add(miAddVertex);
             cm.Items.Add(new Separator());
 
+            if (_edgeCtxIndex < 0)
+                return;
+
+            Edge edge = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
+            int eid = edge.ID;
+
+            bool NeighborHas(ConstrainType t)
+            {
+                int prevIdx = (_edgeCtxIndex - 1 + _polygon.EdgeCount) % _polygon.EdgeCount;
+                int nextIdx = (_edgeCtxIndex + 1) % _polygon.EdgeCount;
+                var prev = _polygon.GetEdgeByOrderIndex(prevIdx);
+                var next = _polygon.GetEdgeByOrderIndex(nextIdx);
+                return prev.ConstrainType == t || next.ConstrainType == t;
+            }
+
             MenuItem miConstraint = new MenuItem 
             { 
                 Header = "Add constraint" 
             };
-            miConstraint.Items.Add(new MenuItem { Header = "Horizontal", IsEnabled = false }); // TODO
-            miConstraint.Items.Add(new MenuItem { Header = "45°", IsEnabled = false });        // TODO
-            miConstraint.Items.Add(new MenuItem { Header = "Fixed length…", IsEnabled = false }); // TODO
+
+            // Horizontal constraint
+            MenuItem miH = new MenuItem 
+            { 
+                Header = "Horizontal",
+                IsCheckable = true 
+            };
+            miH.IsChecked = edge.ConstrainType == ConstrainType.Horizontal;
+            miH.IsEnabled = edge.EdgeType == EdgeType.Line && !NeighborHas(ConstrainType.Horizontal);
+            miH.Click += (s, _) =>
+            {
+                _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Horizontal);
+                RedrawAll();
+            };
+            miConstraint.Items.Add(miH);
+
+            // Diagonal constraint
+            MenuItem mi45 = new MenuItem 
+            {
+                Header = "45°",
+                IsCheckable = true 
+            };
+            mi45.IsChecked = edge.ConstrainType == ConstrainType.Diagonal45;
+            mi45.IsEnabled = edge.EdgeType == EdgeType.Line && !NeighborHas(ConstrainType.Diagonal45);
+            mi45.Click += (s, _) =>
+            {
+                _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Diagonal45);
+                RedrawAll();
+            };
+            miConstraint.Items.Add(mi45);
+
+
+            // Fixed Length
+            MenuItem miFixedLength = new MenuItem 
+            {
+                Header = "Fixed length…",
+                IsCheckable = true
+            };
+            miFixedLength.IsChecked = edge.ConstrainType == ConstrainType.FixedLength;
+            miFixedLength.IsEnabled = edge.EdgeType == EdgeType.Line;
+            miFixedLength.Click += (s, _) =>
+            {
+                double currentLength = Polygon.Distance(_polygon.GetVertexById(edge.V1ID).Position,
+                    _polygon.GetVertexById(edge.V2ID).Position);
+
+                InputDoubleWindow w = new InputDoubleWindow("Fixed length", "Please enter a fixed value of this edge [10, 1000]:", currentLength);
+                w.Owner = this;
+                bool? result = w.ShowDialog();
+
+                if (result == true && w.Length.HasValue)
+                {
+                    _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.FixedLength, w.Length.Value);
+                    RedrawAll();
+                }
+              
+            };
+            miConstraint.Items.Add(miFixedLength);
+
+
             cm.Items.Add(miConstraint);
 
+            MenuItem miRemoveConstraint = new MenuItem
+            {
+                Header = "Remove constraint",
+            };
+            miRemoveConstraint.IsEnabled = edge.ConstrainType != ConstrainType.None;
+            miRemoveConstraint.Click += (s, _) =>
+            {
+                _polygon.ClearEdgeConstraintByOrderIndex(_edgeCtxIndex);
+                RedrawAll();
+            };
+            cm.Items.Add(miRemoveConstraint);
+
+            
+            // TODO
             MenuItem miBezier = new MenuItem { Header = "Bezier Curve", IsEnabled = false }; // TODO: toggle edge to Bezier
             cm.Items.Add(miBezier);
 
             MenuItem miArc = new MenuItem { Header = "Arc", IsEnabled = false }; // TODO: toggle edge to Arc
             cm.Items.Add(miArc);
-
-            // Open at mouse position
+            
             cm.PlacementTarget = DrawingCanvas;
             cm.Placement = PlacementMode.MousePoint;
             cm.IsOpen = true;

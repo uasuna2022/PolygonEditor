@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Shell;
+using Project1_PolygonEditor.Enum_classes;
 
 namespace Project1_PolygonEditor.Models
 {
@@ -97,7 +98,8 @@ namespace Project1_PolygonEditor.Models
         public Vertex GetVertexByOrder(int idx) => _verticesByID[_vertexOrder[idx]];
         public Vertex GetVertexById(int id) => _verticesByID[id];
         public int GetVertexOrderIndexById(int id) => _vertexOrder.IndexOf(id);
-
+        public int GetEdgeOrderIndexById(int edgeId) => _edgeOrder.IndexOf(edgeId);
+        public Edge GetEdgeByOrderIndex(int edgeOrderIndex) => _edgesByID[_edgeOrder[edgeOrderIndex]];
         public (int prevVID, int nextVID) GetNeighborsOfVertex(int vertexID)
         {
             int i = GetVertexOrderIndexById(vertexID);
@@ -227,5 +229,25 @@ namespace Project1_PolygonEditor.Models
             return InsertVertexOnEdge(edgeOrderIndex, mid);
         }
 
+        public void SetEdgeConstraintByOrderIndex(int edgeOrderIndex, ConstrainType t, double fixedLen = 0)
+        {
+            Edge e = GetEdgeByOrderIndex(edgeOrderIndex);
+            e.SetConstraint(t, fixedLen);
+        }
+        public void ClearEdgeConstraintByOrderIndex(int edgeOrderIndex)
+        {
+            GetEdgeByOrderIndex(edgeOrderIndex).ClearConstraint();
+        }
+        public static double Distance(Point a, Point b)
+        {
+            double dx = a.X - b.X, dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+        public int GetOtherVertexIdOfEdge(Edge e, int knownVertexId)
+        {
+            if (knownVertexId == e.V1ID) return e.V2ID;
+            if (knownVertexId == e.V2ID) return e.V1ID;
+            throw new ArgumentException("Vertex is not incident to this edge.");
+        }
     }
 }

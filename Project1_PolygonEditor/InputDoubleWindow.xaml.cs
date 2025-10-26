@@ -32,7 +32,7 @@ namespace Project1_PolygonEditor
 
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
-            if (double.TryParse(InputBox.Text, out double val) && val > 0)
+            if (double.TryParse(InputBox.Text, out double val) && val >= 10 && val <= 1000)
             {
                 Length = val;
                 DialogResult = true;
@@ -40,7 +40,7 @@ namespace Project1_PolygonEditor
             }
             else
             {
-                MessageBox.Show("Please enter a positive number.", "Invalid value",
+                MessageBox.Show("Please enter a positive number (from 10 to 1000)", "Invalid value",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
