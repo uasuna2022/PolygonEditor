@@ -136,6 +136,8 @@ namespace Project1_PolygonEditor
                 int draggedID = _draggingVertex.Model.ID;
 
                 _draggingVertex.Model.SetPosition(newPos);
+                Continuity.ContinuityResolver.EnforceAt(_draggingVertex.Model.ID, _polygon,
+                    _draggingVertex.Model.ContinuityType, false);
 
                 RedrawAll();
                 _draggingVertex = _vertexFigures.First(vf => vf.Model.ID == draggedID);
@@ -160,15 +162,25 @@ namespace Project1_PolygonEditor
 
                 if (edge.EdgeType == EdgeType.BezierCubic)
                 {
+                    // 1) put the dragged CP exactly under the cursor
                     if (_draggingCP.IsFirst)
                         edge.SetBezierControlPoints(new Point(cursor.X, cursor.Y), edge.BezierCP2!.Value);
                     else
                         edge.SetBezierControlPoints(edge.BezierCP1!.Value, new Point(cursor.X, cursor.Y));
+
+                    // 2) enforce continuity at THIS end (this may move the opposite handle)
+                    int vertexIdAtThisEnd = _draggingCP.IsFirst ? edge.V1ID : edge.V2ID;
+                    var vType = _polygon.GetVertexById(vertexIdAtThisEnd).ContinuityType;
+
+                    // (the isMovingControlPoint flag is optional in our latest G1/C1; safe to keep true)
+                    Continuity.ContinuityResolver.EnforceAt(vertexIdAtThisEnd, _polygon, vType, true);
                 }
 
+                // 3) redraw with adjusted handles
                 RedrawAll();
                 return;
             }
+
 
 
             if (_polygon.IsClosed || _polygon.VertexCount == 0)
