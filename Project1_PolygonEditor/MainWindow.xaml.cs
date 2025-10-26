@@ -214,6 +214,34 @@ namespace Project1_PolygonEditor
             }
 
             _rubberLine = null;
+
+            // Setting an appropriate badge to all edges (if necessary)
+            for (int i = 0; i < _polygon.EdgeCount; i++)
+            {
+                Edge e = _polygon.GetEdgeByOrderIndex(i);
+                if (e.ConstrainType == ConstrainType.None) continue;
+
+                Point midPoint = _polygon.GetEdgeMidpointByOrderIndex(i);
+
+                string badgeText = e.ConstrainType switch
+                {
+                    ConstrainType.Horizontal => "H",
+                    ConstrainType.Diagonal45 => "D",
+                    ConstrainType.FixedLength => $"{e.FixedLength:0.#} 🔒",
+                    _ => ""
+                };
+
+                FrameworkElement badge = CreateConstraintBadge(e, badgeText);
+                DrawingCanvas.Children.Add(badge);
+
+                // This function measures the desired size of the element (an argument is a maximum available size)
+                badge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Size sz = badge.DesiredSize;
+
+                Canvas.SetLeft(badge, midPoint.X - sz.Width / 2);
+                Canvas.SetTop(badge, midPoint.Y - sz.Height / 2);
+            }
+
         }
         private void AttachVertexContextMenu(VertexFigure vf)
         {
@@ -482,5 +510,38 @@ namespace Project1_PolygonEditor
             cm.Placement = PlacementMode.MousePoint;
             cm.IsOpen = true;
         }
+
+        private FrameworkElement CreateConstraintBadge(Edge e, string text)
+        {
+            TextBlock tb = new TextBlock
+            {
+                Text = text,
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.Black,
+                Margin = new Thickness(4, 0, 4, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Border border = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Background = (Brush)new BrushConverter().ConvertFrom("#F0F3F7")!,
+                BorderBrush = (Brush)new BrushConverter().ConvertFrom("#9AA7B0")!,
+                BorderThickness = new Thickness(1),
+                Child = tb,
+                Padding = new Thickness(2, 0, 2, 0),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    ShadowDepth = 0,
+                    BlurRadius = 2,
+                    Opacity = 0.25
+                },
+                IsHitTestVisible = false 
+            };
+
+            return border;
+        }
+
     }
 }
