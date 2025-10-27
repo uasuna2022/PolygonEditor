@@ -677,7 +677,8 @@ namespace Project1_PolygonEditor
         }
         private void DrawCubicBezier(Point p0, Point p1, Point p2, Point p3)
         {
-            double NSteps = Geometry.Dist(p3, p2) + Geometry.Dist(p2, p1) + Geometry.Dist(p1, p0);
+            double NSteps = 100;
+            //double NSteps = Geometry.Dist(p3, p2) + Geometry.Dist(p2, p1) + Geometry.Dist(p1, p0);
 
             // Changing to polynomial basis: 
             // A0 = V0, A1 = 3(V1-V0), A2 = 3(V2-2V1+V0), A3 = V3-3V2+3V1-V0 

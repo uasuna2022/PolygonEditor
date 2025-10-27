@@ -9,26 +9,38 @@ using System.Windows;
 
 namespace Project1_PolygonEditor
 {
-    public static class Geometry
+    public static class Geometry // static class with a couple of helper geometry methods 
     {
+        // Calculates a distance between 2 points
         public static double Dist(Point a, Point b)
         {
             double dx = a.X - b.X, dy = a.Y - b.Y;
             return Math.Sqrt(dx * dx + dy * dy);
         }
+        
+        // Creates a new point that lies on the line from 'origin' toward 'toward' exactly 'distance' units away from 'origin'
         public static Point MoveFrom(Point origin, Point toward, double distance)
         {
-            double dx = toward.X - origin.X, dy = toward.Y - origin.Y;
+            double dx = toward.X - origin.X;
+            double dy = toward.Y - origin.Y;
             double len = Math.Sqrt(dx * dx + dy * dy);
-            if (len < 1e-9) return origin;
-            double ux = dx / len, uy = dy / len;
+            if (len < 1e-9) 
+                return origin;
+
+            // Normalizing 
+            double ux = dx / len; 
+            double uy = dy / len;
             return new Point(origin.X + ux * distance, origin.Y + uy * distance);
         }
+
+        // Put point opposite to refPoint with the same distance from 'center'
         public static Point Mirror(Point center, Point refPoint)
         {
-            // Put point opposite to refPoint with the same distance from 'center'
             return new Point(2 * center.X - refPoint.X, 2 * center.Y - refPoint.Y);
         }
+
+        // Does the same as MoveFrom function, but is read more naturally 
+        // i.e.: Geometry.WithDistance(vPos, vToOpp, d) - place a point with distance 'd' from 'vPos' along 'vToOpp'
         public static Point WithDistance(Point center, Point along, double newDist)
         {
             return MoveFrom(center, along, newDist);
