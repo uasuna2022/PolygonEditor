@@ -9,6 +9,7 @@ namespace Project1_PolygonEditor.Continuity
 {
     public class G0Continuity : IVertexContinuity
     {
+        // G0 continuity is preserved all time, so just always returns true doing nothing
         public bool Preserve(int vertexId, Polygon polygon, bool isMovingControlPoint = false) => true;
     }
 }

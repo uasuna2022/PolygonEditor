@@ -9,40 +9,40 @@ using System.Windows;
 
 namespace Project1_PolygonEditor.Continuity
 {
-    public class C1Continuity : IVertexContinuity
+    public class C1Continuity : IVertexContinuity // tangent-vector continuity
     {
         public bool Preserve(int vertexId, Polygon polygon, bool isMovingControlPoint = false)
         {
             var (prev, next) = polygon.GetIncidentEdges(vertexId);
-            var v = polygon.GetVertexById(vertexId).Position;
-            var vPrev = polygon.GetVertexById(prev.V1ID).Position;
-            var vNext = polygon.GetVertexById(next.V2ID).Position;
+            Point v = polygon.GetVertexById(vertexId).Position;
+            Point vPrev = polygon.GetVertexById(prev.V1ID).Position;
+            Point vNext = polygon.GetVertexById(next.V2ID).Position; // getting positions of 2 incident neighbor vertices
 
             bool prevBezier = prev.EdgeType == EdgeType.BezierCubic;
             bool nextBezier = next.EdgeType == EdgeType.BezierCubic;
 
-            // --- one straight + one bezier ---
+            // One straight + one Bezier handle
             bool oneStraightOneBezier =
                 (prevBezier && !nextBezier) || (!prevBezier && nextBezier);
 
             if (oneStraightOneBezier)
             {
-                var straightEdge = prevBezier ? next : prev;
-                var bezierEdge = prevBezier ? prev : next;
+                Edge straightEdge = prevBezier ? next : prev;
+                Edge bezierEdge = prevBezier ? prev : next;
 
+                // The endpoint that is not vertexID
                 int otherId = (straightEdge.V1ID == vertexId) ? straightEdge.V2ID : straightEdge.V1ID;
-                var otherPos = polygon.GetVertexById(otherId).Position;
-                var vPos = v;
+                Point otherPos = polygon.GetVertexById(otherId).Position;
+                Point vPos = v;
 
                 bool bezierStartsHere = (bezierEdge.V1ID == vertexId);
-                Point cp = bezierStartsHere
-                    ? bezierEdge.BezierCP1!.Value
-                    : bezierEdge.BezierCP2!.Value;
+                Point cp = bezierStartsHere ? bezierEdge.BezierCP1!.Value : bezierEdge.BezierCP2!.Value;
 
-                // Desired direction: opposite of handle; C1 length rule ⇒ |v-other| = 3 * |v-cp|
+                // Desired direction: opposite of handle
                 Vector dir = new Vector(vPos.X - cp.X, vPos.Y - cp.Y);
                 double lenDir = dir.Length;
-                if (lenDir < 1e-9) return true;
+                if (lenDir < 1e-9) 
+                    return true;
                 dir /= lenDir;
 
                 double L = 3.0 * Geometry.Dist(vPos, cp);
