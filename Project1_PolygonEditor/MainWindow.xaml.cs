@@ -139,6 +139,12 @@ namespace Project1_PolygonEditor
                 Continuity.ContinuityResolver.EnforceAt(_draggingVertex.Model.ID, _polygon,
                     _draggingVertex.Model.ContinuityType, false);
 
+                // Enforce all constraints on edges connected to this vertex
+                var (prev, next) = _polygon.GetIncidentEdges(_draggingVertex.Model.ID);
+                EdgeConstraints.ConstraintResolver.EnforceAtEdge(prev, _polygon, true);
+                EdgeConstraints.ConstraintResolver.EnforceAtEdge(next, _polygon, true);
+
+
                 RedrawAll();
                 _draggingVertex = _vertexFigures.First(vf => vf.Model.ID == draggedID);
                 _draggingVertex.SyncToModel();
@@ -307,6 +313,7 @@ namespace Project1_PolygonEditor
             {
                 int vertexID = vf.Model.ID;
                 _polygon.DeleteVertex(vertexID);
+                EnforceAllConstraints();   
                 _vertexFigures.Remove(vf);
                 RedrawAll();
             };
@@ -372,7 +379,7 @@ namespace Project1_PolygonEditor
                         RedrawAll();
                         e.Handled = true;
                     }
-
+                    
                     return;
                 }
 
@@ -464,6 +471,7 @@ namespace Project1_PolygonEditor
                 if (_edgeCtxIndex >= 0)
                 {
                     _polygon.InsertVertexAtEdgeMidpoint(_edgeCtxIndex);
+                    EnforceAllConstraints();
                     RedrawAll();
                 }
             };
@@ -502,6 +510,10 @@ namespace Project1_PolygonEditor
             miH.Click += (s, _) =>
             {
                 _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Horizontal);
+                var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
+                EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
+                RedrawAll();
+
                 RedrawAll();
             };
             miConstraint.Items.Add(miH);
@@ -517,6 +529,8 @@ namespace Project1_PolygonEditor
             mi45.Click += (s, _) =>
             {
                 _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Diagonal45);
+                var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
+                EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
                 RedrawAll();
             };
             miConstraint.Items.Add(mi45);
@@ -543,6 +557,8 @@ namespace Project1_PolygonEditor
                 if (result == true && w.Length.HasValue)
                 {
                     _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.FixedLength, w.Length.Value);
+                    var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
+                    EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
                     RedrawAll();
                 }
               
@@ -737,6 +753,16 @@ namespace Project1_PolygonEditor
                 }
             };
         }
+
+        private void EnforceAllConstraints()
+        {
+            for (int i = 0; i < _polygon.EdgeCount; i++)
+            {
+                var e = _polygon.GetEdgeByOrderIndex(i);
+                EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
+            }
+        }
+
         /*
         // NEW
         private static double AngleOf(Point p) => Math.Atan2(p.Y, p.X);
