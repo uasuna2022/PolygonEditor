@@ -669,15 +669,68 @@ namespace Project1_PolygonEditor
             cm.IsOpen = true;
         }
 
-        private (Point cp1, Point cp2) DefaultBezierCPs(Point p0, Point p3)
+        private (Point cp1, Point cp2) DefaultBezierCPs(Point p0, Point p3)   // Default placement of Bezier Control Points
         {
-            // Default placement of Bezier Control Points
             Point cp1 = new Point(p0.X + (p3.X - p0.X) / 3, p0.Y + (p3.Y - p0.Y) / 3);
             Point cp2 = new Point(p0.X + 2 * (p3.X - p0.X) / 3, p0.Y + 2 * (p3.Y - p0.Y) / 3);
             return (cp1, cp2);
         }
         private void DrawCubicBezier(Point p0, Point p1, Point p2, Point p3)
         {
+            double NSteps = Geometry.Dist(p3, p2) + Geometry.Dist(p2, p1) + Geometry.Dist(p1, p0);
+
+            // Changing to polynomial basis: 
+            // A0 = V0, A1 = 3(V1-V0), A2 = 3(V2-2V1+V0), A3 = V3-3V2+3V1-V0 
+            double a3_x = -p0.X + 3 * p1.X - 3 * p2.X + p3.X;
+            double a2_x = 3 * p0.X - 6 * p1.X + 3 * p2.X;
+            double a1_x = -3 * p0.X + 3 * p1.X;
+            double a0_x = p0.X;
+
+            double a3_y = -p0.Y + 3 * p1.Y - 3 * p2.Y + p3.Y;
+            double a2_y = 3 * p0.Y - 6 * p1.Y + 3 * p2.Y;
+            double a1_y = -3 * p0.Y + 3 * p1.Y;
+            double a0_y = p0.Y;
+
+            double dt = 1.0 / NSteps;
+            double dt2 = dt * dt;
+            double dt3 = dt2 * dt;
+
+            // Forward differences for x
+            double d1x = a3_x * dt3 + a2_x * dt2 + a1_x * dt;     
+            double d2x = 6 * a3_x * dt3 + 2 * a2_x * dt2;           
+            double d3x = 6 * a3_x * dt3;                      
+
+            // Forward differences for y
+            double d1y = a3_y * dt3 + a2_y * dt2 + a1_y * dt;      
+            double d2y = 6 * a3_y * dt3 + 2 * a2_y * dt2;           
+            double d3y = 6 * a3_y * dt3;                   
+
+            // Start at t=0
+            double x = a0_x, y = a0_y;
+            Point prev = new(Math.Round(x), Math.Round(y));
+
+            // Plot first point
+            for (int i = 0; i < NSteps; i++)
+            {
+                // Advance with only additions (not making multiple multiplications)
+                x += d1x; 
+                y += d1y;
+                d1x += d2x;
+                d1y += d2y;
+                d2x += d3x;
+                d2y += d3y;
+
+                Point curr = new(Math.Round(x), Math.Round(y));
+                _drawStrategy.DrawLine(prev, curr);
+                prev = curr;
+            }
+
+            // Ensure finish to be exactly at P(1) = p3
+            _drawStrategy.DrawLine(prev, new Point(p3.X, p3.Y));
+            return;
+
+            /* Slow algo without forward-differencing and using Bernstein Basis
+             * 
             const int STEPS = 100; // Defining accuracy of the curve (amount of steps)
             Point prevPoint = p0;
 
@@ -701,6 +754,7 @@ namespace Project1_PolygonEditor
                 _drawStrategy.DrawLine(prevPoint, currPoint);
                 prevPoint = currPoint;
             }
+            */
         }
         private void DrawBezierControlsAndHandles(int edgeOrderIndex)
         {
