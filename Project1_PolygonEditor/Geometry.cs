@@ -45,6 +45,22 @@ namespace Project1_PolygonEditor
         {
             return MoveFrom(center, along, newDist);
         }
+
+        // Calculate distance between a point P and a segment AB
+        public static double DistSqPointToSeg(Point p, Point a, Point b, out Point proj)
+        {
+            double vx = b.X - a.X, vy = b.Y - a.Y;  // AB vector
+            double wx = p.X - a.X, wy = p.Y - a.Y;  // AP vector 
+            double sqLengthAB = vx * vx + vy * vy;  // |AB|^2
+            double t = sqLengthAB > 0 ? (wx * vx + wy * vy) / sqLengthAB : 0.0; // AB dot AP (dot product)
+            if (t < 0)
+                t = 0;
+            else if (t > 1)
+                t = 1;
+
+            proj = new Point(a.X + t * vx, a.Y + t * vy);
+            return Math.Pow((p.X - proj.X), 2) + Math.Pow((p.Y - proj.Y), 2);
+        }
     }
     
     public static class ArcClass

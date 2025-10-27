@@ -119,7 +119,7 @@ namespace Project1_PolygonEditor.Continuity
 
                 double L = (straightEdge.ConstrainType == ConstrainType.FixedLength)
                     ? straightEdge.FixedLength
-                    : Polygon.Distance(vPos, otherPos);
+                    : Geometry.Dist(vPos, otherPos);
 
                 if (isMovingControlPoint && straightEdge.ConstrainType != ConstrainType.Horizontal
                                           && straightEdge.ConstrainType != ConstrainType.Diagonal45)

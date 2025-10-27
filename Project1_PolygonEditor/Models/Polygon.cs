@@ -10,7 +10,9 @@ using Project1_PolygonEditor.Enum_classes;
 
 namespace Project1_PolygonEditor.Models
 {
-    public sealed class Polygon
+    // Polygon model class. Contains a lot of getters (for multiple operations inside MainWindow. 
+    // Contains many fields for easier work with polygon's fields. 
+    public sealed class Polygon 
     {
         private readonly Dictionary<int, Vertex> _verticesByID;
         private readonly Dictionary<int, Edge> _edgesByID;
@@ -145,21 +147,6 @@ namespace Project1_PolygonEditor.Models
             _edgeOrder.Insert(Math.Min(_edgeOrder.Count, idx == 0 ? _edgeOrder.Count : idx - 1), newEid);
         }
 
-        private static double DistSqPointToSeg(Point p, Point a, Point b, out Point proj) // Calculate distance between a point P and a segment AB
-        {
-            double vx = b.X - a.X, vy = b.Y - a.Y;  // AB vector
-            double wx = p.X - a.X, wy = p.Y - a.Y;  // AP vector 
-            double sqLengthAB = vx * vx + vy * vy;  // |AB|^2
-            double t = sqLengthAB > 0 ? (wx * vx + wy * vy) / sqLengthAB : 0.0; // AB dot AP (dot product)
-            if (t < 0) 
-                t = 0; 
-            else if (t > 1) 
-                t = 1;
-
-            proj = new Point(a.X + t * vx, a.Y + t * vy);
-            return Math.Pow((p.X - proj.X), 2) + Math.Pow((p.Y - proj.Y), 2);
-        }
-
         public bool TryFindNearestEdge(Point p, out int edgeOrderIndex, out Point projPoint, double tolerance = 5.0)
         {
             edgeOrderIndex = -1;
@@ -172,7 +159,7 @@ namespace Project1_PolygonEditor.Models
                 Point a = _verticesByID[e.V1ID].Position;
                 Point b = _verticesByID[e.V2ID].Position;
 
-                var d2 = DistSqPointToSeg(p, a, b, out Point proj);
+                var d2 = Geometry.DistSqPointToSeg(p, a, b, out Point proj);
                 if (d2 < best)
                 {
                     best = d2;
@@ -238,18 +225,12 @@ namespace Project1_PolygonEditor.Models
         {
             GetEdgeByOrderIndex(edgeOrderIndex).ClearConstraint();
         }
-        public static double Distance(Point a, Point b)
-        {
-            double dx = a.X - b.X, dy = a.Y - b.Y;
-            return Math.Sqrt(dx * dx + dy * dy);
-        }
         public int GetOtherVertexIdOfEdge(Edge e, int knownVertexId)
         {
             if (knownVertexId == e.V1ID) return e.V2ID;
             if (knownVertexId == e.V2ID) return e.V1ID;
             throw new ArgumentException("Vertex is not incident to this edge.");
         }
-        // NEW
         public void SetEdgeTypeBezierByOrderIndex(int edgeOrderIndex, Point cp1, Point cp2)
         {
             Edge e = GetEdgeByOrderIndex(edgeOrderIndex);

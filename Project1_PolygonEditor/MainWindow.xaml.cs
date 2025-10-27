@@ -267,7 +267,7 @@ namespace Project1_PolygonEditor
                                 var A = _polygon.GetVertexById(e.V1ID).Position;
                                 var B = _polygon.GetVertexById(e.V2ID).Position;
                                 var O = new Point((A.X + B.X) * 0.5, (A.Y + B.Y) * 0.5);
-                                double R = Polygon.Distance(A, B) * 0.5;
+                                double R = Geometry.Dist(A, B) * 0.5;
                                 double thA = Math.Atan2(A.Y - O.Y, A.X - O.X);
                                 double thB = Math.Atan2(B.Y - O.Y, B.X - O.X);
                                 var ap2 = new ArcClass.ArcParams
@@ -594,7 +594,7 @@ namespace Project1_PolygonEditor
             miFixedLength.IsEnabled = edge.EdgeType == EdgeType.Line;
             miFixedLength.Click += (s, _) =>
             {
-                double currentLength = Polygon.Distance(_polygon.GetVertexById(edge.V1ID).Position,
+                double currentLength = Geometry.Dist(_polygon.GetVertexById(edge.V1ID).Position,
                     _polygon.GetVertexById(edge.V2ID).Position);
 
                 InputDoubleWindow w = new InputDoubleWindow("Fixed length", "Please enter a fixed value of this edge [10, 1000]:",
