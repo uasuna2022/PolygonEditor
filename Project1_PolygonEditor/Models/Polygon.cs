@@ -30,6 +30,9 @@ namespace Project1_PolygonEditor.Models
         public Vertex? LastVertex => VertexCount > 0 ? _verticesByID[_vertexOrder[^1]] : null;
         public bool CanClose => !IsClosed && VertexCount >= 3;
 
+        public int? DraggedEdgeId { get; set; } = null; 
+        public bool? DraggedHandleIsFirst { get; set; } = null; // true = CP1 near V1; false = CP2 near V2
+
         public Polygon()
         {
             _verticesByID = new Dictionary<int, Vertex>();

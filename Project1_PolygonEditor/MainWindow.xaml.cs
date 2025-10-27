@@ -178,6 +178,9 @@ namespace Project1_PolygonEditor
                     else
                         edge.SetBezierControlPoints(edge.BezierCP1!.Value, new Point(cursor.X, cursor.Y));
 
+                    edge.NoteHandleMove(_draggingCP.IsFirst);
+                    _polygon.DraggedEdgeId = edge.ID;
+                    _polygon.DraggedHandleIsFirst = _draggingCP.IsFirst;
                     // 2) enforce continuity at THIS end (this may move the opposite handle)
                     int vertexIdAtThisEnd = _draggingCP.IsFirst ? edge.V1ID : edge.V2ID;
                     var vType = _polygon.GetVertexById(vertexIdAtThisEnd).ContinuityType;
@@ -502,6 +505,8 @@ namespace Project1_PolygonEditor
                 DrawingCanvas.ReleaseMouseCapture();
                 _draggingCP = null;
                 e.Handled = true;
+                _polygon.DraggedEdgeId = null;
+                _polygon.DraggedHandleIsFirst = null;
             }
         }
 

@@ -87,12 +87,30 @@ namespace Project1_PolygonEditor.Continuity
             // Bezier–Bezier: make the two handles colinear and symmetric (equal lengths)
             if (prevBezier && nextBezier)
             {
-                Point cp1 = next.BezierCP1!.Value;
-                // Direction through vertex: use the line (cp1 — v) and place prev.cp2 on the opposite side with the same length as cp1
-                double len = Geometry.Dist(v, cp1);
-                Point opposite = Geometry.Mirror(v, cp1);
-                prev.SetBezierControlPoints(prev.BezierCP1!.Value, Geometry.WithDistance(v, opposite, len));
-                return true;
+                bool draggingPrevSide = polygon.DraggedEdgeId == prev.ID && polygon.DraggedHandleIsFirst == false;
+                bool draggingNextSide = polygon.DraggedEdgeId == next.ID && polygon.DraggedHandleIsFirst == true;
+
+                Point vPos = v;
+                if (draggingPrevSide && !draggingNextSide)
+                {
+                    // Keep prev.CP2, set next.CP1 opposite with the SAME length
+                    Point cp2 = prev.BezierCP2!.Value;
+                    double len = Geometry.Dist(vPos, cp2);
+
+                    Vector dir = (Vector)vPos - (Vector)cp2; dir.Normalize();
+                    next.SetBezierControlPoints(vPos + dir * len, next.BezierCP2 ?? vPos);
+                    return true;
+                }
+                else
+                {
+                    // Keep next.CP1, set prev.CP2 opposite with the SAME length
+                    Point cp1 = next.BezierCP1!.Value;
+                    double len = Geometry.Dist(vPos, cp1);
+
+                    Vector dir = (Vector)vPos - (Vector)cp1; dir.Normalize();
+                    prev.SetBezierControlPoints(prev.BezierCP1 ?? vPos, vPos + dir * len);
+                    return true;
+                }
             }
 
             // If both are straight, do nothing

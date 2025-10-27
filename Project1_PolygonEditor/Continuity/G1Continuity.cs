@@ -164,12 +164,42 @@ namespace Project1_PolygonEditor.Continuity
             }
             if (prevBezier && nextBezier)
             {
-                // Mirror direction: prev.CP2 is opposite of next.CP1 around vertex (keep prev length)
-                Point cp1 = next.BezierCP1!.Value;
-                double keep = Geometry.Dist(v, prev.BezierCP2!.Value);
-                Point dir = Geometry.Mirror(v, cp1);
-                prev.SetBezierControlPoints(prev.BezierCP1!.Value, Geometry.WithDistance(v, dir, keep));
-                return true;
+                // Which side is being dragged at THIS vertex?
+                // At vertex v: CP2 of prev is attached to v; CP1 of next is attached to v.
+                bool draggingPrevSide = polygon.DraggedEdgeId == prev.ID && polygon.DraggedHandleIsFirst == false;
+                bool draggingNextSide = polygon.DraggedEdgeId == next.ID && polygon.DraggedHandleIsFirst == true;
+
+                Point vPos = v;
+                if (draggingPrevSide && !draggingNextSide)
+                {
+                    // Keep prev.CP2 where the user put it. Aim next.CP1 opposite, keep its own length.
+                    Point cp2 = prev.BezierCP2!.Value;
+                    double keepLen = next.BezierCP1.HasValue
+                        ? Geometry.Dist(vPos, next.BezierCP1.Value)
+                        : Math.Max(Geometry.Dist(vPos, cp2), 1.0);
+
+                    Vector dir = (Vector)vPos - (Vector)cp2; // opposite of cp2 about v
+                    dir.Normalize();
+                    Point newCp1 = vPos + dir * keepLen;
+
+                    next.SetBezierControlPoints(newCp1, next.BezierCP2 ?? vPos);
+                    return true;
+                }
+                else
+                {
+                    // Keep next.CP1. Aim prev.CP2 opposite, keep its own length.
+                    Point cp1 = next.BezierCP1!.Value;
+                    double keepLen = prev.BezierCP2.HasValue
+                        ? Geometry.Dist(vPos, prev.BezierCP2.Value)
+                        : Math.Max(Geometry.Dist(vPos, cp1), 1.0);
+
+                    Vector dir = (Vector)vPos - (Vector)cp1;
+                    dir.Normalize();
+                    Point newCp2 = vPos + dir * keepLen;
+
+                    prev.SetBezierControlPoints(prev.BezierCP1 ?? vPos, newCp2);
+                    return true;
+                }
             }
 
             // If both are straight, do nothing

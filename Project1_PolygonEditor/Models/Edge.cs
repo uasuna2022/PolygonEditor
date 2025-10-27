@@ -27,6 +27,11 @@ namespace Project1_PolygonEditor.Models
         public double? ArcRadius { get; set; }
         public bool ArcFlipSide { get; set; } = false;
 
+        public int LastMovedBezierHandle { get; private set; } = 0;  // 0 - none/unknown, 1 - CP1, 2 - CP2
+        public void NoteHandleMove(bool isFirst)
+        {
+            LastMovedBezierHandle = isFirst ? 1 : 2;
+        }
 
         public Edge(int id, int v1id, int v2id)
         {
@@ -51,10 +56,6 @@ namespace Project1_PolygonEditor.Models
         {
             EdgeType = EdgeType.Arc;
             ConstrainType = ConstrainType.None;
-            /*
-            ArcCenter = center;
-            ArcRadius = r;
-            */
         }
         public void SwitchArcSide() => ArcFlipSide = !ArcFlipSide;
 
