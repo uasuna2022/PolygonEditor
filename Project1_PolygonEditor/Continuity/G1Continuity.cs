@@ -26,6 +26,15 @@ namespace Project1_PolygonEditor.Continuity
             // Arc + Bezier/Line 
             if (prevArc && !nextArc)
             {
+                if (nextBezier && isMovingControlPoint)
+                {
+                    // Recompute the ARC so it becomes tangent to the Bézier at this G1 vertex
+                    if (ArcClass.TryGetArcParams(polygon, prev, out var ap))
+                        prev.SetArcGeometry(ap.Center, ap.Radius);
+
+                    // Do NOT touch next.BezierCP1 — the user controls it
+                    return true;
+                }
                 // Vector from V toward the NEXT edge’s free endpoint
                 int nextOtherId = (next.V1ID == vertexId) ? next.V2ID : next.V1ID;
                 Point nextOtherPos = polygon.GetVertexById(nextOtherId).Position;
@@ -62,6 +71,16 @@ namespace Project1_PolygonEditor.Continuity
 
             if (nextArc && !prevArc)
             {
+                if (prevBezier && isMovingControlPoint)
+                {
+                    // Recompute the ARC so it becomes tangent to the Bézier at this G1 vertex
+                    if (ArcClass.TryGetArcParams(polygon, next, out var ap))
+                        next.SetArcGeometry(ap.Center, ap.Radius);
+
+                    // Do NOT touch prev.BezierCP2 — the user controls it
+                    return true;
+                }
+
                 int prevOtherId = (prev.V1ID == vertexId) ? prev.V2ID : prev.V1ID;
                 Point prevOther = polygon.GetVertexById(prevOtherId).Position;
                 Vector towardPrev = new Vector(prevOther.X - v.X, prevOther.Y - v.Y);
