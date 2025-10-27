@@ -22,9 +22,9 @@ namespace Project1_PolygonEditor.Models
 
         public double FixedLength { get; private set; } = 0;
 
-        public Point? ArcCenter { get; private set; }
-        public double? ArcRadius { get; private set; }
-        public bool ArcFlipSide { get; private set; } = false;
+        public Point? ArcCenter { get; set; }
+        public double? ArcRadius { get; set; }
+        public bool ArcFlipSide { get; set; } = false;
 
 
         public Edge(int id, int v1id, int v2id)

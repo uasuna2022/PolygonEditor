@@ -47,7 +47,7 @@ namespace Project1_PolygonEditor
         }
     }
     
-    public static class ArcFromColleague
+    public static class ArcClass
     {
         public struct ArcParams
         {

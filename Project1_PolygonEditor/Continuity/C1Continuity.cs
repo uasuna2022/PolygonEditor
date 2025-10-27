@@ -16,7 +16,7 @@ namespace Project1_PolygonEditor.Continuity
             var (prev, next) = polygon.GetIncidentEdges(vertexId);
             Point v = polygon.GetVertexById(vertexId).Position;
             Point vPrev = polygon.GetVertexById(prev.V1ID).Position;
-            Point vNext = polygon.GetVertexById(next.V2ID).Position; // getting positions of 2 incident neighbor vertices
+            Point vNext = polygon.GetVertexById(next.V2ID).Position; // Getting positions of 2 incident neighbor vertices
 
             bool prevBezier = prev.EdgeType == EdgeType.BezierCubic;
             bool nextBezier = next.EdgeType == EdgeType.BezierCubic;
@@ -41,15 +41,14 @@ namespace Project1_PolygonEditor.Continuity
                 // Desired direction: opposite of handle
                 Vector dir = new Vector(vPos.X - cp.X, vPos.Y - cp.Y);
                 double lenDir = dir.Length;
-                if (lenDir < 1e-9) 
+                if (lenDir < 1e-6) 
                     return true;
-                dir /= lenDir;
+                dir /= lenDir; // normalizing
 
                 double L = 3.0 * Geometry.Dist(vPos, cp);
 
-                if (isMovingControlPoint && straightEdge.ConstrainType != ConstrainType.Horizontal
-                                          && straightEdge.ConstrainType != ConstrainType.Diagonal45
-                                          && straightEdge.ConstrainType != ConstrainType.FixedLength)
+                if (isMovingControlPoint && straightEdge.ConstrainType != ConstrainType.Horizontal 
+                    && straightEdge.ConstrainType != ConstrainType.Diagonal45 && straightEdge.ConstrainType != ConstrainType.FixedLength)
                 {
                     // Let the straight edge react: set its far vertex to satisfy C1 (both direction and length)
                     Point newOther = new Point(vPos.X + dir.X * L, vPos.Y + dir.Y * L);
@@ -57,8 +56,8 @@ namespace Project1_PolygonEditor.Continuity
                     return true;
                 }
 
-                // If the straight edge is constrained, we can't move it; instead re-aim the handle as before
-                var vToOpp = Geometry.Mirror(vPos, otherPos);
+                // If the straight edge is constrained, we can't move it, instead we need to re-aim the handle as before
+                Point vToOpp = Geometry.Mirror(vPos, otherPos);
                 double d = Geometry.Dist(vPos, otherPos) / 3.0;
 
                 if (bezierStartsHere)
@@ -69,14 +68,11 @@ namespace Project1_PolygonEditor.Continuity
                 return true;
             }
 
-
-
             // Line–Bezier: set handle colinear with the straight neighbor and at 1/3 distance rule.
             if (nextBezier && !prevBezier)
             {
-                // distance v–cp1 must be |v - vPrev| / 3
                 double d = Geometry.Dist(v, vPrev) / 3.0;
-                Point dir = Geometry.Mirror(v, vPrev);                     // just gives us a ray
+                Point dir = Geometry.Mirror(v, vPrev);  // just gives us a ray
                 next.SetBezierControlPoints(Geometry.WithDistance(v, dir, d), next.BezierCP2 ?? v);
                 return true;
             }
@@ -99,7 +95,7 @@ namespace Project1_PolygonEditor.Continuity
                 return true;
             }
 
-            // Both straight → nothing to do
+            // If both are straight, do nothing
             return false;
         }
     }

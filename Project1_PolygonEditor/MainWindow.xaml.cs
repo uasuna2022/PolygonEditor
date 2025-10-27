@@ -13,6 +13,7 @@ using Project1_PolygonEditor.View;
 using System.Runtime.ConstrainedExecution;
 using Project1_PolygonEditor.Enum_classes;
 using System.Windows.Controls.Primitives;
+using Project1_PolygonEditor.Continuity;
 
 
 
@@ -257,9 +258,9 @@ namespace Project1_PolygonEditor
                             break;
 
                         case EdgeType.Arc:
-                            if (ArcFromColleague.TryGetArcParams(_polygon, e, out var ap))
+                            if (ArcClass.TryGetArcParams(_polygon, e, out var ap))
                             {
-                                ArcFromColleague.Tessellate(ap, 72, (p, q) => _drawStrategy.DrawLine(p, q));
+                                ArcClass.Tessellate(ap, 72, (p, q) => _drawStrategy.DrawLine(p, q));
                             }
                             else
                             {
@@ -269,7 +270,7 @@ namespace Project1_PolygonEditor
                                 double R = Polygon.Distance(A, B) * 0.5;
                                 double thA = Math.Atan2(A.Y - O.Y, A.X - O.X);
                                 double thB = Math.Atan2(B.Y - O.Y, B.X - O.X);
-                                var ap2 = new ArcFromColleague.ArcParams
+                                var ap2 = new ArcClass.ArcParams
                                 {
                                     Center = O,
                                     Radius = R,
@@ -277,7 +278,7 @@ namespace Project1_PolygonEditor
                                     ThetaEnd = thB,
                                     Clockwise = e.ArcFlipSide
                                 };
-                                ArcFromColleague.Tessellate(ap2, 72, (p, q) => _drawStrategy.DrawLine(p, q));
+                                ArcClass.Tessellate(ap2, 72, (p, q) => _drawStrategy.DrawLine(p, q));
                             }
                             break;
                     }
@@ -347,32 +348,18 @@ namespace Project1_PolygonEditor
                 item.IsChecked = (vf.Model.ContinuityType == t);
                 item.Click += (s, e) =>
                 {
-                    vf.Model.SetContinuityType(t);
-                    var (prevE, nextE) = _polygon.GetIncidentEdges(vf.Model.ID);
-                    bool incidentHasArc = (prevE.EdgeType == EdgeType.Arc) || (nextE.EdgeType == EdgeType.Arc);
-
-                    if (incidentHasArc && t == ContinuityType.C1)
+                    // If we can't apply chosen continuity type 
+                    if (!Enum.TryParse(item.Header.ToString(), out ContinuityType picked))
+                        return;
+                    string why;
+                    if (!CanApplyContinuity(vf.Model.ID, picked, out why))
                     {
-                        MessageBox.Show("C1 is not supported on vertices adjacent to arcs.");
+                        MessageBox.Show(why);
+                        SyncContinuityMenuState(vf.Model.ID, miSetContinuityType, vf.Model.ContinuityType);
                         return;
                     }
-                    if (t == ContinuityType.G1)
-                    {
-                        // if the opposite endpoint of an incident Arc already has G1 → block
-                        bool oppositeG1 = false;
-                        foreach (var ed in new[] { prevE, nextE })
-                        {
-                            if (ed.EdgeType != EdgeType.Arc) continue;
-                            int otherId = (ed.V1ID == vf.Model.ID) ? ed.V2ID : ed.V1ID;
-                            if (_polygon.GetVertexById(otherId).ContinuityType == ContinuityType.G1)
-                                oppositeG1 = true;
-                        }
-                        if (oppositeG1)
-                        {
-                            MessageBox.Show("At most one endpoint of an arc may have G1 continuity.");
-                            return;
-                        }
-                    }
+                    vf.Model.SetContinuityType(t);
+                    
                     Continuity.ContinuityResolver.EnforceAt(
                         vf.Model.ID,
                         _polygon,
@@ -443,16 +430,43 @@ namespace Project1_PolygonEditor
         {
             var (prevEdge, nextEdge) = _polygon.GetIncidentEdges(vertexId);
             bool bothLines = prevEdge.EdgeType == EdgeType.Line && nextEdge.EdgeType == EdgeType.Line;
+            bool hasArc = prevEdge.EdgeType == EdgeType.Arc || nextEdge.EdgeType == EdgeType.Arc;
+
+            bool oppositeArcEndAlreadyG1 = false;
+            if (hasArc)
+            {
+                foreach (var ed in new[] { prevEdge, nextEdge })
+                {
+                    if (ed.EdgeType != EdgeType.Arc) continue;
+                    int otherId = (ed.V1ID == vertexId) ? ed.V2ID : ed.V1ID;
+                    if (_polygon.GetVertexById(otherId).ContinuityType == ContinuityType.G1)
+                    {
+                        oppositeArcEndAlreadyG1 = true;
+                        break;
+                    }
+                }
+            }
 
             foreach (MenuItem mi in continuityMenu.Items)
             {
-                if (Enum.TryParse(mi.Header.ToString(), out ContinuityType t))
-                {
-                    mi.IsChecked = (t == current);
+                if (!Enum.TryParse(mi.Header.ToString(), out ContinuityType t))
+                    continue;
 
-                    if (t == ContinuityType.G0) mi.IsEnabled = true;
-                    else mi.IsEnabled = !bothLines;
+                mi.IsChecked = (t == current);
+
+                if (t == ContinuityType.G0)
+                {
+                    mi.IsEnabled = true;
+                    continue;
                 }
+
+                bool enabled = true;
+                if (bothLines) 
+                    enabled = false;
+                if (hasArc && t == ContinuityType.C1) enabled = false; 
+                if (hasArc && t == ContinuityType.G1 && oppositeArcEndAlreadyG1) enabled = false; 
+
+                mi.IsEnabled = enabled;
             }
         }
 
@@ -488,7 +502,6 @@ namespace Project1_PolygonEditor
                 DrawingCanvas.ReleaseMouseCapture();
                 _draggingCP = null;
                 e.Handled = true;
-                return;
             }
         }
 
@@ -650,6 +663,19 @@ namespace Project1_PolygonEditor
                     return;
                 }
                 edge.SetTypeArc();
+                var v1 = _polygon.GetVertexById(edge.V1ID).Position;
+                var v2 = _polygon.GetVertexById(edge.V2ID).Position;
+                Point mid = new Point((v1.X + v2.X) / 2.0, (v1.Y + v2.Y) / 2.0);
+                Vector d = new Vector(v2.X - v1.X, v2.Y - v1.Y);
+                if (d.Length > 1e-6)
+                {
+                    Vector n = new Vector(-d.Y, d.X);
+                    n.Normalize();
+                    double offset = d.Length / 2.0;
+                    edge.ArcCenter = new Point(mid.X + n.X * offset, mid.Y + n.Y * offset);
+                    edge.ArcRadius = offset;
+                    edge.ArcFlipSide = false;   // or compute based on user choice
+                }
                 RedrawAll();
             };
             cm.Items.Add(miArc);
@@ -830,5 +856,50 @@ namespace Project1_PolygonEditor
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
             }
         }
+
+        // Function serves to check if a user can apply a certain type of continuity to chosen vertex.
+        private bool CanApplyContinuity(int vertexId, ContinuityType t, out string reason)
+        {
+            reason = string.Empty;
+            if (t == ContinuityType.G0) 
+                return true;
+
+            var (prevE, nextE) = _polygon.GetIncidentEdges(vertexId);
+            bool incidentHasArc = (prevE.EdgeType == EdgeType.Arc) || (nextE.EdgeType == EdgeType.Arc);
+
+            // C1 is never allowed on vertices adjacent to arcs.
+            if (incidentHasArc && t == ContinuityType.C1)
+            {
+                reason = "C1 is not supported on vertices adjacent to arcs.";
+                return false;
+            }
+
+            // For G1 if this vertex touches an ARC, the opposite arc end must NOT be already G1.
+            if (t == ContinuityType.G1)
+            {
+                foreach (var ed in new[] { prevE, nextE })
+                {
+                    if (ed.EdgeType != EdgeType.Arc) 
+                        continue;
+                    int otherId = (ed.V1ID == vertexId) ? ed.V2ID : ed.V1ID;
+                    if (_polygon.GetVertexById(otherId).ContinuityType == ContinuityType.G1)
+                    {
+                        reason = "Only one endpoint of an arc may have G1 continuity.";
+                        return false;
+                    }
+                }
+            }
+
+            // If both incident edges are straight lines, only G0 is meaningful - disable others.
+            bool bothLines = prevE.EdgeType == EdgeType.Line && nextE.EdgeType == EdgeType.Line;
+            if (bothLines && t != ContinuityType.G0)
+            {
+                reason = "Continuity above G0 requires at least one curved segment.";
+                return false;
+            }
+
+            return true;
+        }
+
     }
 }
