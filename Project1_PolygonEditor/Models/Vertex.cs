@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Project1_PolygonEditor.Models
 {
+    // Vertex model class. Contains Vertex fields and few setters.
     public sealed class Vertex
     {
         public int ID { get; }

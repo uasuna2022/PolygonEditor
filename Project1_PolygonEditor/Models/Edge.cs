@@ -9,6 +9,7 @@ using System.Windows.Shapes;
 
 namespace Project1_PolygonEditor.Models
 {
+    // Edge model class. Contains a lot of fields and some getters/setters.
     public sealed class Edge
     {
         public int ID { get; }
