@@ -8,12 +8,12 @@ using System.Windows;
 
 namespace Project1_PolygonEditor.EdgeConstraints
 {
-    public sealed class HorizontalConstraint : IEdgeConstraint
+    public sealed class HorizontalConstraint : IEdgeConstraint //  horizontal constraint (Y coord remains the same in both vertices)
     {
         public bool Preserve(Edge edge, Polygon polygon, bool isMovingVertex = false)
         {
-            var v1 = polygon.GetVertexById(edge.V1ID);
-            var v2 = polygon.GetVertexById(edge.V2ID);
+            Vertex v1 = polygon.GetVertexById(edge.V1ID);
+            Vertex v2 = polygon.GetVertexById(edge.V2ID);
 
             double avgY = (v1.Position.Y + v2.Position.Y) / 2.0;
 

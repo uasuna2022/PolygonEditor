@@ -10,6 +10,7 @@ namespace Project1_PolygonEditor.EdgeConstraints
 {
     public sealed class NoConstraint : IEdgeConstraint
     {
-        public bool Preserve(Edge edge, Polygon polygon, bool isMovingVertex = false) => true;
+        // As there is no constraint there is nothing to check, returns true.
+        public bool Preserve(Edge edge, Polygon polygon, bool isMovingVertex = false) => true; 
     }
 }

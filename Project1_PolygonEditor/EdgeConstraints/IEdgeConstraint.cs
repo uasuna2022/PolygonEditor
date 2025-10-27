@@ -7,7 +7,9 @@ using Project1_PolygonEditor.Models;
 
 namespace Project1_PolygonEditor.EdgeConstraints
 {
-    public interface IEdgeConstraint
+    // Interface for handling edge constraint.
+    // Contains one method that has to preserve the concrete constraint continuity at chosen edge. 
+    public interface IEdgeConstraint 
     {
         bool Preserve(Edge edge, Polygon polygon, bool isMovingVertex = false);
     }

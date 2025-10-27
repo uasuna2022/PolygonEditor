@@ -84,7 +84,5 @@ namespace Project1_PolygonEditor.Models
             ArcCenter = center;
             ArcRadius = r;
         }
-
-        public override string ToString() => $"Edge nr. {ID}: {V1ID}->{V2ID}, {EdgeType}, {ConstrainType}";
     }
 }

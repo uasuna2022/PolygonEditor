@@ -9,7 +9,7 @@ using Project1_PolygonEditor.Enum_classes;
 
 namespace Project1_PolygonEditor.EdgeConstraints
 {
-    public sealed class ConstraintResolver
+    public sealed class ConstraintResolver // factory to avoid switch in main window and preserve the appropriate strategy
     {
         private static IEdgeConstraint StrategyFor(ConstrainType t) => t switch
         {

@@ -8,7 +8,7 @@ using Project1_PolygonEditor.Models;
 
 namespace Project1_PolygonEditor.Continuity
 {
-    public static class ContinuityResolver
+    public static class ContinuityResolver // factory to avoid switch in main window and preserve the appropriate strategy
     {
         private static IVertexContinuity StrategyFor(ContinuityType t) => t switch
         {

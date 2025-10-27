@@ -28,6 +28,5 @@ namespace Project1_PolygonEditor.Models
 
         public void SetPosition(Point p) => Position = p;
         public void SetContinuityType(ContinuityType type) => ContinuityType = type;
-        public override string ToString() => $"Vertex nr.{ID}: [{Position.X}, {Position.Y}]";
     }
 }
