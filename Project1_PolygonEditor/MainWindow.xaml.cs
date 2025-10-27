@@ -16,6 +16,7 @@ using System.Windows.Controls.Primitives;
 
 
 
+
 namespace Project1_PolygonEditor
 {
     /// <summary>
@@ -99,6 +100,8 @@ namespace Project1_PolygonEditor
             vf.DrawVertex(DrawingCanvas);
             _vertexFigures.Add(vf);
             AttachVertexContextMenu(vf);
+
+            VertexContinuityBadge.DrawNearVertex(DrawingCanvas, v);
 
             if (_polygon.VertexCount >= 2)
             {
@@ -254,7 +257,28 @@ namespace Project1_PolygonEditor
                             break;
 
                         case EdgeType.Arc:
-                            _drawStrategy.DrawLine(a, b); 
+                            if (ArcFromColleague.TryGetArcParams(_polygon, e, out var ap))
+                            {
+                                ArcFromColleague.Tessellate(ap, 72, (p, q) => _drawStrategy.DrawLine(p, q));
+                            }
+                            else
+                            {
+                                var A = _polygon.GetVertexById(e.V1ID).Position;
+                                var B = _polygon.GetVertexById(e.V2ID).Position;
+                                var O = new Point((A.X + B.X) * 0.5, (A.Y + B.Y) * 0.5);
+                                double R = Polygon.Distance(A, B) * 0.5;
+                                double thA = Math.Atan2(A.Y - O.Y, A.X - O.X);
+                                double thB = Math.Atan2(B.Y - O.Y, B.X - O.X);
+                                var ap2 = new ArcFromColleague.ArcParams
+                                {
+                                    Center = O,
+                                    Radius = R,
+                                    ThetaStart = thA,
+                                    ThetaEnd = thB,
+                                    Clockwise = e.ArcFlipSide
+                                };
+                                ArcFromColleague.Tessellate(ap2, 72, (p, q) => _drawStrategy.DrawLine(p, q));
+                            }
                             break;
                     }
                 }
@@ -269,6 +293,8 @@ namespace Project1_PolygonEditor
                 vf.DrawVertex(DrawingCanvas);
                 AttachVertexContextMenu(vf);
                 _vertexFigures.Add(vf);
+
+                VertexContinuityBadge.DrawNearVertex(DrawingCanvas, v);
             }
 
             _rubberLine = null;
@@ -281,23 +307,7 @@ namespace Project1_PolygonEditor
 
                 Point midPoint = _polygon.GetEdgeMidpointByOrderIndex(i);
 
-                string badgeText = e.ConstrainType switch
-                {
-                    ConstrainType.Horizontal => "H",
-                    ConstrainType.Diagonal45 => "D",
-                    ConstrainType.FixedLength => $"{e.FixedLength:0.#} 🔒",
-                    _ => ""
-                };
-
-                FrameworkElement badge = CreateConstraintBadge(e, badgeText);
-                DrawingCanvas.Children.Add(badge);
-
-                // This function measures the desired size of the element (an argument is a maximum available size)
-                badge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                Size sz = badge.DesiredSize;
-
-                Canvas.SetLeft(badge, midPoint.X - sz.Width / 2);
-                Canvas.SetTop(badge, midPoint.Y - sz.Height / 2);
+                EdgeConstraintBadge.DrawAt(DrawingCanvas, e, midPoint);
             }
 
         }
@@ -338,6 +348,31 @@ namespace Project1_PolygonEditor
                 item.Click += (s, e) =>
                 {
                     vf.Model.SetContinuityType(t);
+                    var (prevE, nextE) = _polygon.GetIncidentEdges(vf.Model.ID);
+                    bool incidentHasArc = (prevE.EdgeType == EdgeType.Arc) || (nextE.EdgeType == EdgeType.Arc);
+
+                    if (incidentHasArc && t == ContinuityType.C1)
+                    {
+                        MessageBox.Show("C1 is not supported on vertices adjacent to arcs.");
+                        return;
+                    }
+                    if (t == ContinuityType.G1)
+                    {
+                        // if the opposite endpoint of an incident Arc already has G1 → block
+                        bool oppositeG1 = false;
+                        foreach (var ed in new[] { prevE, nextE })
+                        {
+                            if (ed.EdgeType != EdgeType.Arc) continue;
+                            int otherId = (ed.V1ID == vf.Model.ID) ? ed.V2ID : ed.V1ID;
+                            if (_polygon.GetVertexById(otherId).ContinuityType == ContinuityType.G1)
+                                oppositeG1 = true;
+                        }
+                        if (oppositeG1)
+                        {
+                            MessageBox.Show("At most one endpoint of an arc may have G1 continuity.");
+                            return;
+                        }
+                    }
                     Continuity.ContinuityResolver.EnforceAt(
                         vf.Model.ID,
                         _polygon,
@@ -604,6 +639,16 @@ namespace Project1_PolygonEditor
             };
             miArc.Click += (s, _) =>
             {
+                int prevIdx = (_edgeCtxIndex - 1 + _polygon.EdgeCount) % _polygon.EdgeCount;
+                int nextIdx = (_edgeCtxIndex + 1) % _polygon.EdgeCount;
+                var prev = _polygon.GetEdgeByOrderIndex(prevIdx);
+                var next = _polygon.GetEdgeByOrderIndex(nextIdx);
+
+                if (prev.EdgeType == EdgeType.Arc || next.EdgeType == EdgeType.Arc)
+                {
+                    MessageBox.Show("Adjacent arcs are not supported. Turn off the neighboring arc first.");
+                    return;
+                }
                 edge.SetTypeArc();
                 RedrawAll();
             };
@@ -622,38 +667,6 @@ namespace Project1_PolygonEditor
             cm.PlacementTarget = DrawingCanvas;
             cm.Placement = PlacementMode.MousePoint;
             cm.IsOpen = true;
-        }
-
-        private FrameworkElement CreateConstraintBadge(Edge e, string text)
-        {
-            TextBlock tb = new TextBlock
-            {
-                Text = text,
-                FontSize = 12,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.Black,
-                Margin = new Thickness(4, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            Border border = new Border
-            {
-                CornerRadius = new CornerRadius(6),
-                Background = (Brush)new BrushConverter().ConvertFrom("#F0F3F7")!,
-                BorderBrush = (Brush)new BrushConverter().ConvertFrom("#9AA7B0")!,
-                BorderThickness = new Thickness(1),
-                Child = tb,
-                Padding = new Thickness(2, 0, 2, 0),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect
-                {
-                    ShadowDepth = 0,
-                    BlurRadius = 2,
-                    Opacity = 0.25
-                },
-                IsHitTestVisible = false 
-            };
-
-            return border;
         }
 
         private (Point cp1, Point cp2) DefaultBezierCPs(Point p0, Point p3)
@@ -762,154 +775,5 @@ namespace Project1_PolygonEditor
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
             }
         }
-
-        /*
-        // NEW
-        private static double AngleOf(Point p) => Math.Atan2(p.Y, p.X);
-
-        private void DrawArcPolyline(Point center, double radius, double startAngle, double endAngle, bool clockwise)
-        {
-            const int STEPS = 72; // smooth enough; increase if needed
-            double sweep = endAngle - startAngle;
-            if (clockwise && sweep > 0) sweep -= 2 * Math.PI;
-            if (!clockwise && sweep < 0) sweep += 2 * Math.PI;
-
-            double dt = sweep / STEPS;
-            double t = startAngle;
-            Point prev = new Point(center.X + radius * Math.Cos(t), center.Y + radius * Math.Sin(t));
-
-            for (int i = 1; i <= STEPS; i++)
-            {
-                t += dt;
-                Point curr = new Point(center.X + radius * Math.Cos(t), center.Y + radius * Math.Sin(t));
-                _drawStrategy.DrawLine(prev, curr);
-                prev = curr;
-            }
-        }
-        private bool TryComputeArc(Edge e, out Point O, out double R, out double a0, out double a1, out bool clockwise)
-        {
-            var A = _polygon.GetVertexById(e.V1ID).Position;
-            var B = _polygon.GetVertexById(e.V2ID).Position;
-
-            // Continuity at ends (your vertex menu already sets this)
-            var vA = _polygon.GetVertexById(e.V1ID).ContinuityType;
-            var vB = _polygon.GetVertexById(e.V2ID).ContinuityType;
-
-            // Enforce "only one end may be G1"
-            bool g1A = vA == ContinuityType.G1;
-            bool g1B = vB == ContinuityType.G1;
-            if (g1A && g1B) g1B = false; // prefer start end
-
-            // Helper lines
-            Point M = new Point((A.X + B.X) * 0.5, (A.Y + B.Y) * 0.5);
-            Vector AB = new Vector(B.X - A.X, B.Y - A.Y);
-            double L = Math.Sqrt(AB.X * AB.X + AB.Y * AB.Y);
-            if (L < 1e-6) { O = default; R = 0; a0 = a1 = 0; clockwise = false; return false; }
-
-            // Perpendicular-bisector of AB: through M with direction n = perp(AB)
-            Vector n = new Vector(-AB.Y, AB.X);
-
-            // Default: G0–G0 → semicircle with diameter AB
-            if (!g1A && !g1B)
-            {
-                O = M;
-                R = L * 0.5;
-                // start/end angles
-                a0 = Math.Atan2(A.Y - O.Y, A.X - O.X);
-                a1 = Math.Atan2(B.Y - O.Y, B.X - O.X);
-
-                // choose side using Edge.ArcFlipSide
-                clockwise = e.ArcFlipSide; // false = CCW (bulge left of AB), true = CW
-                return true;
-            }
-
-            // Build line through the G1 end, perpendicular to tangent there
-            // Tangent at A (incoming from previous edge) ~ normalize( A - Prev(A) )
-            Point? prevOfA = TryPrevVertexAround(A, e.V1ID);
-            Point? nextOfB = TryNextVertexAround(B, e.V2ID);
-
-            Vector tangent; // unit
-            Point anchor;   // A or B
-
-            if (g1A && prevOfA.HasValue)
-            {
-                Vector tA = new Vector(A.X - prevOfA.Value.X, A.Y - prevOfA.Value.Y);
-                if (tA.Length < 1e-6) { g1A = false; } else { tA.Normalize(); tangent = tA; anchor = A; goto Solve; }
-            }
-            if (g1B && nextOfB.HasValue)
-            {
-                Vector tB = new Vector(nextOfB.Value.X - B.X, nextOfB.Value.Y - B.Y);
-                if (tB.Length < 1e-6) { g1B = false; } else { tB.Normalize(); tangent = tB; anchor = B; goto Solve; }
-            }
-
-            // Degenerate → fallback to semicircle
-            O = M; R = L * 0.5;
-            a0 = Math.Atan2(A.Y - O.Y, A.X - O.X);
-            a1 = Math.Atan2(B.Y - O.Y, B.X - O.X);
-            clockwise = e.ArcFlipSide;
-            return true;
-
-        Solve:
-            // Center must lie on:
-            // 1) line through 'anchor' with direction perp(tangent)
-            // 2) perpendicular bisector of AB: through M, direction n
-            Vector d1 = new Vector(-tangent.Y, tangent.X); // perp to tangent
-            if (d1.Length < 1e-9 || n.Length < 1e-9) { O = default; R = 0; a0 = a1 = 0; clockwise = false; return false; }
-
-            // Solve intersection: anchor + s*d1 = M + t*n
-            // 2x2 system [d1  -n][s;t] = (M - anchor)
-            double det = d1.X * (-n.Y) - d1.Y * (-n.X);
-            if (Math.Abs(det) < 1e-8)
-            {
-                // Nearly parallel → fallback semicircle
-                O = M; R = L * 0.5;
-                a0 = Math.Atan2(A.Y - O.Y, A.X - O.X);
-                a1 = Math.Atan2(B.Y - O.Y, B.X - O.X);
-                clockwise = e.ArcFlipSide;
-                return true;
-            }
-            Vector rhs = new Vector(M.X - anchor.X, M.Y - anchor.Y);
-            double s = (rhs.X * (-n.Y) - rhs.Y * (-n.X)) / det;
-            O = new Point(anchor.X + s * d1.X, anchor.Y + s * d1.Y);
-
-            R = Math.Sqrt((A.X - O.X) * (A.X - O.X) + (A.Y - O.Y) * (A.Y - O.Y));
-            a0 = Math.Atan2(A.Y - O.Y, A.X - O.X);
-            a1 = Math.Atan2(B.Y - O.Y, B.X - O.X);
-
-            // Choose direction: if G1 at A, the **outgoing** arc tangent at A must match 'tangent'
-            // Arc tangent at angle θ is perpendicular to (O->point). For CCW, tangent direction at A is perp((A - O)) rotating CCW.
-            // We’ll check both directions and pick the one whose tangent at A matches best; then allow Flip to invert.
-            bool ccwPreferred = true;
-            {
-                // CCW tangent at A is perpCCW(A-O) = (- (A.Y - O.Y), (A.X - O.X))
-                Vector r = new Vector(A.X - O.X, A.Y - O.Y);
-                Vector t_ccw = new Vector(-r.Y, r.X); t_ccw.Normalize();
-                Vector t_cw = new Vector(r.Y, -r.X); t_cw.Normalize();
-                double dCCW = Math.Abs(1 - Math.Abs(t_ccw.X * tangent.X + t_ccw.Y * tangent.Y));
-                double dCW = Math.Abs(1 - Math.Abs(t_cw.X * tangent.X + t_cw.Y * tangent.Y));
-                ccwPreferred = dCCW <= dCW;
-            }
-
-            clockwise = !ccwPreferred;
-            // Apply user flip
-            if (e.ArcFlipSide) clockwise = !clockwise;
-
-            return true;
-        }
-
-        // Helpers to fetch neighbors needed for tangents
-        private Point? TryPrevVertexAround(Point A, int vId)
-        {
-            try { var (prevId, _) = _polygon.GetNeighborsOfVertex(vId); return _polygon.GetVertexById(prevId).Position; }
-            catch { return null; }
-        }
-        private Point? TryNextVertexAround(Point B, int vId)
-        {
-            try { var (_, nextId) = _polygon.GetNeighborsOfVertex(vId); return _polygon.GetVertexById(nextId).Position; }
-            catch { return null; }
-        }
-
-        */
-
     }
 }
