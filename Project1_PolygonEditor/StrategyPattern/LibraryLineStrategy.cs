@@ -10,7 +10,8 @@ using System.Windows.Shapes;
 
 namespace Project1_PolygonEditor.StrategyPattern
 {
-    public sealed class LibraryLineStrategy : IDrawStrategy
+    // Library algorithm. Very simple: just creates a new WPF line and adds it ti working canvas.
+    public sealed class LibraryLineStrategy : IDrawStrategy 
     {
         private readonly Canvas _canvas;
         public LibraryLineStrategy(Canvas canvas)

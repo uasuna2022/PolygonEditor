@@ -11,6 +11,9 @@ using System.Windows.Shapes;
 
 namespace Project1_PolygonEditor.StrategyPattern
 {
+    // Bresenham algorithm. Implemented an idea from wikipedia:
+    // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+    // Contains one more method to add a pixel (rectangle 1x1) to working canvas.
     public sealed class BresenhamLineStrategy : IDrawStrategy
     {
         private readonly Canvas _canvas;

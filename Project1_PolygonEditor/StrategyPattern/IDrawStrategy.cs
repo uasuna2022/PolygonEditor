@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace Project1_PolygonEditor.StrategyPattern
 {
+    // Strategy pattern implemented to handle 2 ways of drawing a line (Bresenham algo and library algo).
+    // Contains one method that draws a line between 2 points given as arguments.
     public interface IDrawStrategy
     {
         void DrawLine(System.Windows.Point p1, System.Windows.Point p2);
