@@ -85,8 +85,10 @@ namespace Project1_PolygonEditor
                             {
                                 Vector d = neiPos - curPos;
                                 if (d.Length < 1e-9) break;
-                                Vector u1 = new Vector(1, 1); u1.Normalize();
-                                Vector u2 = new Vector(1, -1); u2.Normalize();
+                                Vector u1 = new Vector(1, 1);
+                                u1.Normalize();
+                                Vector u2 = new Vector(1, -1);
+                                u2.Normalize();
                                 double s1 = Vector.Multiply(d, u1);
                                 double s2 = Vector.Multiply(d, u2);
                                 Vector u = (Math.Abs(s1) >= Math.Abs(s2)) ? u1 : u2;

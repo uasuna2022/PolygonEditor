@@ -176,7 +176,7 @@ namespace Project1_PolygonEditor
 
                 if (edge.EdgeType == EdgeType.BezierCubic)
                 {
-                    // 1) put the dragged CP exactly under the cursor
+                    // put the dragged CP exactly under the cursor
                     if (_draggingCP.IsFirst)
                         edge.SetBezierControlPoints(new Point(cursor.X, cursor.Y), edge.BezierCP2!.Value);
                     else
@@ -185,19 +185,16 @@ namespace Project1_PolygonEditor
                     edge.NoteHandleMove(_draggingCP.IsFirst);
                     _polygon.DraggedEdgeId = edge.ID;
                     _polygon.DraggedHandleIsFirst = _draggingCP.IsFirst;
-                    // 2) enforce continuity at THIS end (this may move the opposite handle)
+
+                    // enforce continuity at THIS end (this may move the opposite handle)
                     int vertexIdAtThisEnd = _draggingCP.IsFirst ? edge.V1ID : edge.V2ID;
                     var vType = _polygon.GetVertexById(vertexIdAtThisEnd).ContinuityType;
 
-                    // (the isMovingControlPoint flag is optional in our latest G1/C1; safe to keep true)
                     RelationPropagationResolver.PropagateControlPointMove(edge.ID, _draggingCP.IsFirst,
                         new Point(cursor.X, cursor.Y), _polygon);
 
-                    //Continuity.ContinuityResolver.EnforceAt(vertexIdAtThisEnd, _polygon, vType, true);
-
                 }
 
-                // 3) redraw with adjusted handles
                 RedrawAll();
                 return;
             }
@@ -371,10 +368,7 @@ namespace Project1_PolygonEditor
                     }
                     vf.Model.SetContinuityType(t);
                     
-                    Continuity.ContinuityResolver.EnforceAt(
-                        vf.Model.ID,
-                        _polygon,
-                        vf.Model.ContinuityType,
+                    Continuity.ContinuityResolver.EnforceAt(vf.Model.ID, _polygon, vf.Model.ContinuityType,
                         false   // we are not dragging a control point
                     );
                     RedrawAll();
@@ -698,16 +692,6 @@ namespace Project1_PolygonEditor
             };
             cm.Items.Add(miArc);
 
-            MenuItem miFlip = new MenuItem { Header = "Flip arc side" };
-            miFlip.IsEnabled = edge.EdgeType == EdgeType.Arc;
-            miFlip.Click += (s, _) =>
-            {
-                edge.SwitchArcSide();
-                RedrawAll();
-            };
-            cm.Items.Add(miFlip);
-
-
             cm.PlacementTarget = DrawingCanvas;
             cm.Placement = PlacementMode.MousePoint;
             cm.IsOpen = true;
@@ -892,7 +876,7 @@ namespace Project1_PolygonEditor
                 return false;
             }
 
-            // For G1 if this vertex touches an ARC, the opposite arc end must NOT be already G1.
+            // For G1 if this vertex touches an arc, the opposite arc end must not be already G1.
             if (t == ContinuityType.G1)
             {
                 foreach (var ed in new[] { prevE, nextE })
