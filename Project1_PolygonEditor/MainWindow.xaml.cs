@@ -34,6 +34,8 @@ namespace Project1_PolygonEditor
 
         private VertexFigure? _draggingVertex;
         private Point _dragCaptureOffset;
+        private Point _draggedVertexStartPos;
+
 
         private int _edgeCtxIndex = -1;
         private Point _edgeCtxPoint;
@@ -140,6 +142,8 @@ namespace Project1_PolygonEditor
                 int draggedID = _draggingVertex.Model.ID;
 
                 _draggingVertex.Model.SetPosition(newPos);
+                RelationPropagationResolver.PropagateVertexMove(draggedID, _polygon, _draggedVertexStartPos, newPos);
+
                 Continuity.ContinuityResolver.EnforceAt(_draggingVertex.Model.ID, _polygon,
                     _draggingVertex.Model.ContinuityType, false);
 
@@ -186,7 +190,11 @@ namespace Project1_PolygonEditor
                     var vType = _polygon.GetVertexById(vertexIdAtThisEnd).ContinuityType;
 
                     // (the isMovingControlPoint flag is optional in our latest G1/C1; safe to keep true)
-                    Continuity.ContinuityResolver.EnforceAt(vertexIdAtThisEnd, _polygon, vType, true);
+                    RelationPropagationResolver.PropagateControlPointMove(edge.ID, _draggingCP.IsFirst,
+                        new Point(cursor.X, cursor.Y), _polygon);
+
+                    //Continuity.ContinuityResolver.EnforceAt(vertexIdAtThisEnd, _polygon, vType, true);
+
                 }
 
                 // 3) redraw with adjusted handles
@@ -409,7 +417,10 @@ namespace Project1_PolygonEditor
                 }
 
                 Point cursorPos = e.GetPosition(DrawingCanvas);
-                Point center = vf.Model.Position;                     
+                Point center = vf.Model.Position;
+
+                _draggedVertexStartPos = center;
+
                 _draggingVertex = vf;
                 _dragCaptureOffset = new Point(cursorPos.X - center.X, cursorPos.Y - center.Y);
 
@@ -565,7 +576,7 @@ namespace Project1_PolygonEditor
                 _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Horizontal);
                 var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
-                RedrawAll();
+                RelationPropagationResolver.OnConstraintApplied(e, _polygon);
 
                 RedrawAll();
             };
