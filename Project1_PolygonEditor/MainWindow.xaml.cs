@@ -595,6 +595,7 @@ namespace Project1_PolygonEditor
                 _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.Diagonal45);
                 var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
+                RelationPropagationResolver.OnConstraintApplied(e, _polygon);
                 RedrawAll();
             };
             miConstraint.Items.Add(mi45);
@@ -623,6 +624,7 @@ namespace Project1_PolygonEditor
                     _polygon.SetEdgeConstraintByOrderIndex(_edgeCtxIndex, ConstrainType.FixedLength, w.Length.Value);
                     var e = _polygon.GetEdgeByOrderIndex(_edgeCtxIndex);
                     EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
+                    RelationPropagationResolver.OnConstraintApplied(e, _polygon);
                     RedrawAll();
                 }
               
