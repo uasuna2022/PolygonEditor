@@ -47,6 +47,14 @@
                              Margin="10, 0, 0, 0"
                              VerticalAlignment="Center">
                 </RadioButton>
+                <TextBlock Text="Automatic relations:" VerticalAlignment="Center" 
+                           Name="AutoRelationTextBlock"
+                           Margin="100 0 0 0"></TextBlock>
+                <CheckBox Name="AutoRelationCheckBox" IsChecked="False" VerticalAlignment="Center" Margin="10 0 0 0"
+                          Checked="AutoRelationCheckBox_Checked"
+                          Unchecked="AutoRelationCheckBox_Unchecked">
+                    
+                </CheckBox>
             </StackPanel>
             <Button Name="CleanButton"
                     Width="75"

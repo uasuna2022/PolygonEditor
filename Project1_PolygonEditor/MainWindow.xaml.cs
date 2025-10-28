@@ -14,6 +14,7 @@ using System.Runtime.ConstrainedExecution;
 using Project1_PolygonEditor.Enum_classes;
 using System.Windows.Controls.Primitives;
 using Project1_PolygonEditor.Continuity;
+using System.Net;
 
 
 
@@ -42,6 +43,9 @@ namespace Project1_PolygonEditor
 
         private List<BezierControlPointFigure> _cpFigures;
         private BezierControlPointFigure? _draggingCP;
+
+        private bool _autoRelationsEnabled = false;
+        private Dictionary<int, ConstrainType> _inferredConstraints = new Dictionary<int, ConstrainType>();
 
         public MainWindow()
         {
@@ -152,6 +156,34 @@ namespace Project1_PolygonEditor
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(prev, _polygon, true);
                 EdgeConstraints.ConstraintResolver.EnforceAtEdge(next, _polygon, true);
 
+                // Automatic relations logic
+                _inferredConstraints.Clear(); 
+
+                if (_autoRelationsEnabled)
+                {
+                    // Get incident edges
+                    var (prevEdge, nextEdge) = _polygon.GetIncidentEdges(_draggingVertex.Model.ID);
+
+                    foreach (Edge edge in new[] { prevEdge, nextEdge })
+                    {
+                        // Automatic relations are being checked only on line edges with no constraints 
+                        if (edge.ConstrainType == ConstrainType.None && edge.EdgeType == EdgeType.Line)
+                        {
+                            Point p1 = _polygon.GetVertexById(edge.V1ID).Position;
+                            Point p2 = _polygon.GetVertexById(edge.V2ID).Position;
+
+                            // Check if they follow the rules
+                            if (Geometry.IsHorizontal(p1, p2))
+                            {
+                                _inferredConstraints[edge.ID] = ConstrainType.Horizontal;
+                            }
+                            else if (Geometry.IsDiagonal45(p1, p2))
+                            {
+                                _inferredConstraints[edge.ID] = ConstrainType.Diagonal45;
+                            }
+                        }
+                    }
+                }
 
                 RedrawAll();
                 _draggingVertex = _vertexFigures.First(vf => vf.Model.ID == draggedID);
@@ -186,7 +218,7 @@ namespace Project1_PolygonEditor
                     _polygon.DraggedEdgeId = edge.ID;
                     _polygon.DraggedHandleIsFirst = _draggingCP.IsFirst;
 
-                    // enforce continuity at THIS end (this may move the opposite handle)
+                    // enforce continuity at this end (this may move the opposite handle)
                     int vertexIdAtThisEnd = _draggingCP.IsFirst ? edge.V1ID : edge.V2ID;
                     var vType = _polygon.GetVertexById(vertexIdAtThisEnd).ContinuityType;
 
@@ -312,11 +344,15 @@ namespace Project1_PolygonEditor
             for (int i = 0; i < _polygon.EdgeCount; i++)
             {
                 Edge e = _polygon.GetEdgeByOrderIndex(i);
-                if (e.ConstrainType == ConstrainType.None) continue;
-
                 Point midPoint = _polygon.GetEdgeMidpointByOrderIndex(i);
-
-                EdgeConstraintBadge.DrawAt(DrawingCanvas, e, midPoint);
+                if (e.ConstrainType != ConstrainType.None)
+                {
+                    EdgeConstraintBadge.DrawAt(DrawingCanvas, e, midPoint);
+                }
+                else if (_inferredConstraints.ContainsKey(e.ID))
+                {
+                    DrawTemporaryBadge(_inferredConstraints[e.ID], midPoint);
+                }
             }
 
         }
@@ -500,9 +536,28 @@ namespace Project1_PolygonEditor
         {
             if (_draggingVertex != null)
             {
+                // --- POCZĄTEK NOWEJ LOGIKI ZATWIERDZANIA RELACJI ---
+
+                // If there were some inferred relations - set them as constant
+                if (_autoRelationsEnabled && _inferredConstraints.Count > 0)
+                {
+                    foreach (var kvp in _inferredConstraints)
+                    {
+                        int edgeId = kvp.Key;
+                        ConstrainType type = kvp.Value;
+
+                        _polygon.SetEdgeConstraintByOrderIndex(
+                            _polygon.GetEdgeOrderIndexById(edgeId),
+                            type);
+                    }
+                }
+
+                _inferredConstraints.Clear(); // Clean the dictionary, as all possible inferred relations are handled
+
                 DrawingCanvas.ReleaseMouseCapture();
                 _draggingVertex = null;
                 e.Handled = true;
+                RedrawAll();
             }
 
             if (_draggingCP != null)
@@ -512,6 +567,7 @@ namespace Project1_PolygonEditor
                 e.Handled = true;
                 _polygon.DraggedEdgeId = null;
                 _polygon.DraggedHandleIsFirst = null;
+                _inferredConstraints.Clear();
             }
         }
 
@@ -903,5 +959,44 @@ namespace Project1_PolygonEditor
             return true;
         }
 
+        private void AutoRelationCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            _autoRelationsEnabled = true;
+        }
+
+        private void AutoRelationCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            _autoRelationsEnabled = false;
+        }
+
+        // Helper method to draw temporary badge
+        private void DrawTemporaryBadge(ConstrainType type, Point midPoint)
+        {
+            string text = "";
+            switch (type)
+            {
+                case ConstrainType.Horizontal: 
+                    text = "H"; 
+                    break;
+                case ConstrainType.Diagonal45: 
+                    text = "D"; 
+                    break;
+                default: 
+                    return; 
+            }
+
+            TextBlock badge = new TextBlock
+            {
+                Text = text,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.Gray, 
+                Opacity = 0.8,
+                IsHitTestVisible = false
+            };
+
+            Canvas.SetLeft(badge, midPoint.X + 5);
+            Canvas.SetTop(badge, midPoint.Y - 10);
+            DrawingCanvas.Children.Add(badge);
+        }
     }
 }

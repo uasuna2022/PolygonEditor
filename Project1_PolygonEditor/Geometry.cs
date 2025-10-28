@@ -62,6 +62,24 @@ namespace Project1_PolygonEditor
             proj = new Point(a.X + t * vx, a.Y + t * vy);
             return Math.Pow((p.X - proj.X), 2) + Math.Pow((p.Y - proj.Y), 2);
         }
+
+        // Checker if an edge is almost horizontal
+        public static bool IsHorizontal(Point p1, Point p2)
+        {
+            return Math.Abs(p1.Y - p2.Y) < 5.0;
+        }
+
+        // Checker if an edge is almost diagonal (45degree)
+        public static bool IsDiagonal45(Point p1, Point p2)
+        {
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+
+            if (Math.Abs(dx) < 1e-6) 
+                return false;
+
+            return Math.Abs(Math.Abs(dx) - Math.Abs(dy)) < 5.0;
+        }
     }
     
     public static class ArcClass
