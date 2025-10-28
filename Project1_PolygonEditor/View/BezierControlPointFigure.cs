@@ -10,6 +10,8 @@ using System.Windows;
 
 namespace Project1_PolygonEditor.View
 {
+    // BezierControlPoint View figure. Defined to display a CPs of a certain Bezier Cubic Curve. 
+    // Equipped with some fields and Draw method.
     public sealed class BezierControlPointFigure
     {
         public int EdgeId { get; }
@@ -42,13 +44,6 @@ namespace Project1_PolygonEditor.View
             Shape.Tag = (EdgeId, IsFirst);
             canvas.Children.Add(Shape);
             return Shape;
-        }
-
-        public void SetPosition(Point p)
-        {
-            Position = p;
-            Canvas.SetLeft(Shape, p.X - Radius);
-            Canvas.SetTop(Shape, p.Y - Radius);
         }
     }
 }

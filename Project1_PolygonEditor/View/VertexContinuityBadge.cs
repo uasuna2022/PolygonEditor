@@ -11,6 +11,7 @@ using System.Windows.Media;
 
 namespace Project1_PolygonEditor.View
 {
+    // VertexContinuity View badge. Its appearance defined. Possesses a method which can draw it next to appropriate vertex.
     public static class VertexContinuityBadge
     {
         public static FrameworkElement? CreateBadge(Vertex v)

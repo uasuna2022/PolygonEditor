@@ -11,6 +11,8 @@ using Project1_PolygonEditor.Models;
 
 namespace Project1_PolygonEditor.View
 {
+    // VertexFigure View class with defined appearance. Contains a field with Vertex Model info.
+    // Possesses Draw and SyncToModel methods.
     public class VertexFigure
     {
         public Vertex Model { get; }

@@ -12,6 +12,7 @@ using System.Windows.Media;
 
 namespace Project1_PolygonEditor.View
 {
+    // EdgeConstraint View badge. Its appearance defined. Possesses a method which can draw it next to appropriate edge.
     public static class EdgeConstraintBadge
     {
         public static FrameworkElement? CreateBadge(Edge e)
