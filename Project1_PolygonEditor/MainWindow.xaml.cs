@@ -1117,5 +1117,17 @@ namespace Project1_PolygonEditor
             Canvas.SetTop(badge, midPoint.Y - 10);
             DrawingCanvas.Children.Add(badge);
         }
+
+        private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void UserManualMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            UserManualWindow w = new UserManualWindow();
+            w.Owner = this;
+            w.ShowDialog();
+        }
     }
 }

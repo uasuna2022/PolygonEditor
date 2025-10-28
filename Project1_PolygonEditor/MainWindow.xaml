@@ -21,9 +21,9 @@
                 <MenuItem Header="_File" Name="FileMenuItem">
                     <MenuItem Header="_Save Figure" Name="SaveFigureMenuItem"></MenuItem>
                     <Separator/>
-                    <MenuItem Header="_Exit" Name="ExitMenuItem"></MenuItem>
+                    <MenuItem Header="_Exit" Name="ExitMenuItem" Click="ExitMenuItem_Click"></MenuItem>
                 </MenuItem>
-                <MenuItem Header="_User Manual" Name="UserManualMenuItem"></MenuItem>
+                <MenuItem Header="_User Manual" Name="UserManualMenuItem" Click="UserManualMenuItem_Click"></MenuItem>
                 <MenuItem Header="_Description" Name="DescriptionMenuItem"></MenuItem>
             </Menu>
         </DockPanel>
