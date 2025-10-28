@@ -57,7 +57,128 @@ namespace Project1_PolygonEditor
         }
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            
+            DrawingCanvas.Children.Clear();
+            _polygon.Clear();
+            _vertexFigures.Clear();
+            _cpFigures.Clear();
+
+            List<Point> pts = new List<Point>
+            {
+                new Point( 70, 240),   
+                new Point(180, 120),   
+                new Point(300, 110),   
+                new Point(480, 200),   
+                new Point(860, 200),   
+                new Point(900, 280),   
+                new Point(720, 360),   
+                new Point(780, 520),   
+                new Point(620, 640),   
+                new Point(480, 560),   
+                new Point(320, 520),   
+                new Point(210, 320)    
+            };
+
+            var verts = new List<Vertex>();
+            foreach (var p in pts) verts.Add(_polygon.AddVertex(p));
+
+            var edgeIds = new List<int>();
+            for (int i = 1; i < verts.Count; i++)
+                edgeIds.Add(_polygon.AddEdge(verts[i - 1].ID, verts[i].ID).ID);
+
+            edgeIds.Add(_polygon.Close().ID);
+
+            int EO(int id) => _polygon.GetEdgeOrderIndexById(id);
+
+            {
+                int eid = edgeIds[1];
+                var edge = _polygon.GetEdgeByOrderIndex(EO(eid));
+                edge.SetTypeArc();
+
+                _polygon.GetVertexById(verts[2].ID).SetContinuityType(ContinuityType.G1);
+            }
+
+
+            {
+                int eid = edgeIds[0]; 
+                var p0 = verts[0].Position;
+                var p3 = verts[1].Position;
+                Point cp1 = new Point(p0.X + 70, p0.Y - 70);
+                Point cp2 = new Point(p3.X - 60, p3.Y - 10);
+                _polygon.SetEdgeTypeBezierByOrderIndex(EO(eid), cp1, cp2);
+
+                _polygon.GetVertexById(verts[0].ID).SetContinuityType(ContinuityType.G1);
+            }
+
+            {
+                int eid = edgeIds[6]; 
+                var p0 = verts[6].Position;
+                var p3 = verts[7].Position;
+                Point cp1 = new Point(p0.X + 30, p0.Y + 120);
+                Point cp2 = new Point(p3.X - 90, p3.Y - 140);
+                _polygon.SetEdgeTypeBezierByOrderIndex(EO(eid), cp1, cp2);
+
+                _polygon.GetVertexById(verts[6].ID).SetContinuityType(ContinuityType.G1);
+            }
+
+
+            {
+                int eid = edgeIds[9]; 
+                var p0 = verts[10].Position; 
+                var p3 = verts[9].Position;
+                Point cp1 = new Point(p0.X - 20, p0.Y + 80);
+                Point cp2 = new Point(p3.X + 80, p3.Y + 40);
+                _polygon.SetEdgeTypeBezierByOrderIndex(EO(eid), cp1, cp2);
+
+                _polygon.GetVertexById(verts[10].ID).SetContinuityType(ContinuityType.C1);
+            }
+
+            {
+                int eid = edgeIds[3]; 
+                _polygon.SetEdgeConstraintByOrderIndex(EO(eid), ConstrainType.Horizontal);
+            }
+
+
+            {
+                int eid = edgeIds[4]; 
+                _polygon.SetEdgeConstraintByOrderIndex(EO(eid), ConstrainType.Diagonal45);
+            }
+
+            {
+                int eid = edgeIds[8]; 
+                _polygon.SetEdgeConstraintByOrderIndex(EO(eid), ConstrainType.FixedLength, 167); 
+            }
+
+            _polygon.GetVertexById(verts[9].ID).SetContinuityType(ContinuityType.G1);
+
+            void SettleAll()
+            {
+                for (int i = 0; i < _polygon.VertexCount; i++)
+                {
+                    var v = _polygon.GetVertexByOrder(i);
+                    if (v.ContinuityType != ContinuityType.G0)
+                        Continuity.ContinuityResolver.EnforceAt(v.ID, _polygon, v.ContinuityType, false);
+                }
+
+                for (int i = 0; i < _polygon.EdgeCount; i++)
+                {
+                    var e = _polygon.GetEdgeByOrderIndex(i);
+
+                    if (e.EdgeType == EdgeType.Arc && ArcClass.TryGetArcParams(_polygon, e, out var ap))
+                        e.SetArcGeometry(ap.Center, ap.Radius);
+
+                    EdgeConstraints.ConstraintResolver.EnforceAtEdge(e, _polygon);
+                    RelationPropagationResolver.OnConstraintApplied(e, _polygon);
+                }
+
+                for (int i = 0; i < _polygon.VertexCount; i++)
+                {
+                    var v = _polygon.GetVertexByOrder(i);
+                    RelationPropagationResolver.PropagateVertexMove(v.ID, _polygon, v.Position, v.Position);
+                }
+            }
+
+            SettleAll();
+            RedrawAll();
         }
 
         private void CleanButton_Click(object sender, RoutedEventArgs e)
@@ -536,8 +657,6 @@ namespace Project1_PolygonEditor
         {
             if (_draggingVertex != null)
             {
-                // --- POCZĄTEK NOWEJ LOGIKI ZATWIERDZANIA RELACJI ---
-
                 // If there were some inferred relations - set them as constant
                 if (_autoRelationsEnabled && _inferredConstraints.Count > 0)
                 {
