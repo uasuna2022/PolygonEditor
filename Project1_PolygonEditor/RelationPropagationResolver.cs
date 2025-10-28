@@ -46,23 +46,24 @@ namespace Project1_PolygonEditor
 
                 while (hops++ < maxHops)
                 {
+                    // Detect loop: all vertices adjusted, fallback to whole-polygon move.
                     var incidentEdges = polygon.GetIncidentEdges(currentId);
                     Edge edge = clockwise ? incidentEdges.next : incidentEdges.prev;
 
                     int neighborId = (edge.V1ID == currentId) ? edge.V2ID : edge.V1ID;
 
                     // Check if the neighbor is already visited
-                    if (visited.Contains(neighborId))
+                    if (visited.Contains(neighborId))
                     {
-                        // If the neighbor is the *original* start vertex, we've looped.
-                        if (neighborId == vertexId) // 'vertexId' from outer PropagateVertexMove scope
-                        {
-                            // This implies a fully constrained, closed loop. Fallback.
-                            TranslatePolygon(polygon, moveVector);
+                        // If the neighbor is the *original* start vertex, we've looped.
+                        if (neighborId == vertexId) // 'vertexId' from outer PropagateVertexMove scope
+                        {
+                            // This implies a fully constrained, closed loop. Fallback.
+                            TranslatePolygon(polygon, moveVector);
                         }
-                        // If it's the start OR any other visited vertex (meeting the other propagation),
-                        // we must stop this direction.
-                        return;
+                        // If it's the start OR any other visited vertex (meeting the other propagation),
+                        // we must stop this direction.
+                        return;
                     }
 
                     Vertex currentVertex = polygon.GetVertexById(currentId);
@@ -75,6 +76,7 @@ namespace Project1_PolygonEditor
                     {
                         case ConstrainType.Horizontal:
                             neighborVertex.SetPosition(new Point(neiPos.X, curPos.Y));
+                            neighborWasMovedByConstraint = true;
                             break;
 
                         case ConstrainType.Diagonal45:
@@ -88,6 +90,7 @@ namespace Project1_PolygonEditor
                                 Vector u = (Math.Abs(s1) >= Math.Abs(s2)) ? u1 : u2;
                                 double s = (Math.Abs(s1) >= Math.Abs(s2)) ? s1 : s2;
                                 neighborVertex.SetPosition(curPos + u * s);
+                                neighborWasMovedByConstraint = true;
                                 break;
                             }
 
@@ -102,6 +105,7 @@ namespace Project1_PolygonEditor
                                 else
                                     dir /= dist;
                                 neighborVertex.SetPosition(curPos + dir * L);
+                                neighborWasMovedByConstraint = true;
                                 break;
                             }
 
@@ -111,26 +115,29 @@ namespace Project1_PolygonEditor
                     }
 
                     EnforceContinuityAtVertex(neighborId);
+
+                    // Jeśli sąsiad nie został przesunięty przez ograniczenie,
+                    // łańcuch *ruchu* jest przerwany. Kończymy propagację w tym kierunku.
                     if (!neighborWasMovedByConstraint)
+                    {
                         return;
+                    }
 
+                    // Jeśli tu dotarliśmy, sąsiad ZOSTAŁ przesunięty.
+                    // Dodajemy go do odwiedzonych i kontynuujemy pętlę.
                     visited.Add(neighborId);
-
-                    EnforceContinuityAtVertex(neighborId);
-
                     currentId = neighborId;
                 }
             }
 
 
-            // Add the initial vertex *before* any propagation.
             visited.Add(vertexId);
 
-            // 1. Enforce continuity at the initially moved vertex (adjust outgoing control handles if needed).
-            EnforceContinuityAtVertex(vertexId);
+            // 1. Enforce continuity at the initially moved vertex (adjust outgoing control handles if needed).
+            EnforceContinuityAtVertex(vertexId);
 
-            // 2. Propagate outwards clockwise and counterclockwise from the moved vertex.
-            PropagateDirection(vertexId, clockwise: true);
+            // 2. Propagate outwards clockwise and counterclockwise from the moved vertex.
+            PropagateDirection(vertexId, clockwise: true);
             PropagateDirection(vertexId, clockwise: false);
         }
 
