@@ -88,9 +88,9 @@ namespace Project1_PolygonEditor
         {
             public Point Center;
             public double Radius;
-            public double ThetaStart; 
-            public double ThetaEnd;   
-            public bool Clockwise;
+            public double ThetaStart; // start angle (1st vertex)
+            public double ThetaEnd;   // end angle (2nd vertex)
+            public bool Clockwise;    
         }
 
         private const double EPS = 1e-6;
@@ -98,12 +98,17 @@ namespace Project1_PolygonEditor
         // Function computes arc parameters for an EdgeType.Arc edge (returns true if successes)
         public static bool TryGetArcParams(Polygon poly, Edge e, out ArcParams arc)
         {
-            var A = poly.GetVertexById(e.V1ID).Position;
-            var B = poly.GetVertexById(e.V2ID).Position;
-            if (Geometry.Dist(A, B) < EPS) { arc = default; return false; }
+            // Getting ends of edges
+            Point A = poly.GetVertexById(e.V1ID).Position;
+            Point B = poly.GetVertexById(e.V2ID).Position;
+            if (Geometry.Dist(A, B) < EPS) 
+            { 
+                arc = default; 
+                return false; 
+            }
 
-            var contA = poly.GetVertexById(e.V1ID).ContinuityType;
-            var contB = poly.GetVertexById(e.V2ID).ContinuityType;
+            ContinuityType contA = poly.GetVertexById(e.V1ID).ContinuityType;
+            ContinuityType contB = poly.GetVertexById(e.V2ID).ContinuityType;
 
             // Treat C1 like G1 for arcs (tangent constrained). But it will never happen, cause the UI logic forbids this.
             bool g1A = (contA == ContinuityType.G1 || contA == ContinuityType.C1);
@@ -119,10 +124,10 @@ namespace Project1_PolygonEditor
             // Helper builds a semicircle over AB with flip flag
             ArcParams SemiOverChord()
             {
-                var O = Mid(A, B);
-                double R = Geometry.Dist(A, B) * 0.5;
-                double thA = Math.Atan2(A.Y - O.Y, A.X - O.X);
-                double thB = Math.Atan2(B.Y - O.Y, B.X - O.X);
+                Point O = Mid(A, B);    // Center point of our arc
+                double R = Geometry.Dist(A, B) * 0.5; 
+                double thA = Math.Atan2(A.Y - O.Y, A.X - O.X);  // Point A angle inside the circle 
+                double thB = Math.Atan2(B.Y - O.Y, B.X - O.X);  // Point B angle inside the circle
                 return new ArcParams { 
                     Center = O, 
                     Radius = R, 
@@ -143,30 +148,36 @@ namespace Project1_PolygonEditor
             bool g1AtStart = g1A;
             int startVid = g1AtStart ? e.V1ID : e.V2ID;
             int endVid = g1AtStart ? e.V2ID : e.V1ID;
-            var S = poly.GetVertexById(startVid).Position;
-            var E = poly.GetVertexById(endVid).Position;
+            Point S = poly.GetVertexById(startVid).Position;   // vertex with G1 continuity requirement
+            Point E = poly.GetVertexById(endVid).Position;     // other vertex
 
-            if (!TryGetOtherIncidentEdge(poly, e, startVid, out var otherEdge))
-            { arc = SemiOverChord(); return true; }
+            if (!TryGetOtherIncidentEdge(poly, e, startVid, out var otherEdge)) // trying to get the other incident edge with S
+            { 
+                arc = SemiOverChord(); 
+                return true;
+            }
 
-            var tan = GetIncomingTangentAtVertex(poly, otherEdge, startVid);
+            Vector tan = GetIncomingTangentAtVertex(poly, otherEdge, startVid); // tangent direction vector
             double norm = tan.Length;
             if (norm < EPS) 
             { 
                 arc = SemiOverChord(); 
                 return true; 
             }
+
             tan /= norm;
             tan = new Vector(-tan.X, -tan.Y);
 
             // direction perpendicular to tangent
             Vector perp = new Vector(-tan.Y, tan.X);
 
-            // chord SE perp-bisector
-            Vector SE = new Vector(E.X - S.X, E.Y - S.Y);
-            Point M = new Point((S.X + E.X) * 0.5, (S.Y + E.Y) * 0.5);
-            Vector n = new Vector(-SE.Y, SE.X);
+            //  Center of an arc going through S and E must lay on the chord perp going through M.
+            Vector SE = new Vector(E.X - S.X, E.Y - S.Y);   // SE chord
+            Point M = new Point((S.X + E.X) * 0.5, (S.Y + E.Y) * 0.5);  // chord mid-point
+            Vector n = new Vector(-SE.Y, SE.X);  // perp vector to SE
 
+
+            // 'perp' direction handling (may be switched to the opposite)
             double dot_d_v = SE.X * perp.X + SE.Y * perp.Y;
             bool flipped = false;
             if (dot_d_v < 0) 
@@ -181,6 +192,8 @@ namespace Project1_PolygonEditor
                 return true; 
             }
 
+            // We have 2 lines now: through S in 'perp' direction and through M in 'n' direction. 
+            // We need to find a cross point of 2 of them.
             double det = perp.X * n.Y - perp.Y * n.X;
             if (Math.Abs(det) < EPS) 
             { 
@@ -198,6 +211,7 @@ namespace Project1_PolygonEditor
                 return true; 
             }
 
+            // Getting the angles
             double thS = Math.Atan2(S.Y - Oi.Y, S.X - Oi.X);
             double thE = Math.Atan2(E.Y - Oi.Y, E.X - Oi.X);
 
@@ -226,9 +240,12 @@ namespace Project1_PolygonEditor
         // Draw helper (polyline tessellation, identical behavior to Bezier)
         public static void Tessellate(ArcParams arc, int steps, Action<Point, Point> drawLine)
         {
+            // Counting angle range
             double sweep = arc.ThetaEnd - arc.ThetaStart;
-            if (arc.Clockwise && sweep > 0) sweep -= 2 * Math.PI;
-            if (!arc.Clockwise && sweep < 0) sweep += 2 * Math.PI;
+            if (arc.Clockwise && sweep > 0) 
+                sweep -= 2 * Math.PI;
+            if (!arc.Clockwise && sweep < 0) 
+                sweep += 2 * Math.PI;
 
             double dt = sweep / steps;
             double t = arc.ThetaStart;
