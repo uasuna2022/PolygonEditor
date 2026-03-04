@@ -66,6 +66,6 @@ This project was developed for the *Computer Graphics* course at Warsaw Universi
 ## Contact
 Feel free to contact me if you have any suggestions or questions regarding the project:
 - **Github**: [@uasuna2022](https://github.com/uasuna2022)
-- **Email**: [max.gomanchuk@gmail.com](mailto:max.gomanchuk@gmail.com) - Maksim Hamanchuk (me)
-- **Instagram**: [@m_a_k_s_i_m_g](https://www.instagram.com/m_a_k_s_i_m_g/) - Maksim Hamanchuk (me)
+- **Email**: [max.gomanchuk@gmail.com](mailto:max.gomanchuk@gmail.com)
+- **Instagram**: [@m_a_k_s_i_m_g](https://www.instagram.com/m_a_k_s_i_m_g/)
 
